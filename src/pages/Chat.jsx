@@ -155,9 +155,9 @@ export default function Chat() {
     const normalizedText = normalize(text);
     
     // Check if message is very short (potential blockage/silence)
-    const tacereTrigger = prependPrompts.find(p => p.trigger_name === 'TACERE');
-    if (text.trim().length <= 3 && text.trim().length > 0 && tacereTrigger) {
-      return tacereTrigger.prompt;
+    if (normalizedText.length > 0 && normalizedText.length <= 3) {
+      const tacereTrigger = prependPrompts.find(p => p.trigger_name === 'TACERE');
+      if (tacereTrigger) return tacereTrigger.prompt;
     }
     
     // Check all triggers from database
