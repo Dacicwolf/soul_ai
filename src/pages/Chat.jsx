@@ -136,15 +136,27 @@ export default function Chat() {
     }
   };
 
+  const normalizeText = (text) => {
+    return text
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/ă/g, 'a')
+      .replace(/â/g, 'a')
+      .replace(/î/g, 'i')
+      .replace(/ș/g, 's')
+      .replace(/ț/g, 't');
+  };
+
   const checkSafetyKeywords = (text) => {
-    const lowerText = text.toLowerCase();
-    return SAFETY_KEYWORDS.some(keyword => lowerText.includes(keyword));
+    const normalizedText = normalizeText(text);
+    return SAFETY_KEYWORDS.some(keyword => normalizedText.includes(normalizeText(keyword)));
   };
 
   const detectPrependTrigger = (text) => {
     if (!prependPrompts || prependPrompts.length === 0) return null;
     
-    const lowerText = text.toLowerCase();
+    const normalizedText = normalizeText(text);
     
     // Check if message is very short (potential blockage/silence)
     const tacereTrigger = prependPrompts.find(p => p.trigger_name === 'TACERE');
@@ -154,7 +166,7 @@ export default function Chat() {
     
     // Check all triggers from database
     for (const trigger of prependPrompts) {
-      if (trigger.keywords.some(keyword => lowerText.includes(keyword))) {
+      if (trigger.keywords.some(keyword => normalizedText.includes(normalizeText(keyword)))) {
         return trigger.prompt;
       }
     }
