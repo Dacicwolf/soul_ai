@@ -45,6 +45,7 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState(null);
+  const [conversation, setConversation] = useState(null);
   const [messageCount, setMessageCount] = useState(0);
   const [showSafetyResponse, setShowSafetyResponse] = useState(false);
   const [safetyLockCount, setSafetyLockCount] = useState(0);
@@ -76,29 +77,42 @@ export default function Chat() {
     initConversation();
   }, []);
 
+  useEffect(() => {
+    if (!conversationId) return;
+
+    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
+      setMessages(data.messages || []);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, [conversationId]);
+
   const initConversation = async () => {
     try {
-      const conversation = await base44.agents.createConversation({
+      const newConversation = await base44.agents.createConversation({
         agent_name: 'companion',
         metadata: {
           name: `Conversație - ${MODE_LABELS[mode]}`,
           mode: mode
         }
       });
-      setConversationId(conversation.id);
+      setConversationId(newConversation.id);
+      setConversation(newConversation);
       
-      // Build and send the complete role (General + Specific) as system context
+      // Send system prompt and initial greeting
       const systemPrompt = getSystemPrompt();
-      
-      // Add initial AI greeting from predefined messages
-      setMessages([{
+      await base44.agents.addMessage(newConversation, {
         role: 'system',
-        content: systemPrompt,
-        hidden: true
-      }, {
+        content: systemPrompt
+      });
+      
+      // Add initial AI greeting
+      await base44.agents.addMessage(newConversation, {
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
-      }]);
+      });
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
@@ -132,17 +146,8 @@ export default function Chat() {
     return `${generalPrompt}\n\n${specificPrompt}`;
   };
 
-  const buildConversationHistory = () => {
-    return messages
-      .filter(msg => !msg.hidden)
-      .map(msg => ({
-        role: msg.role,
-        content: msg.content
-      }));
-  };
-
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading) return;
+    if (!inputValue.trim() || isLoading || !conversation) return;
     if (safetyLockCount > 0) {
       setSafetyLockCount(prev => prev - 1);
       return;
@@ -153,9 +158,12 @@ export default function Chat() {
     
     // Check for safety keywords
     if (checkSafetyKeywords(userMessage)) {
-      setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
       setShowSafetyResponse(true);
       setSafetyLockCount(2);
+      await base44.agents.addMessage(conversation, {
+        role: 'user',
+        content: userMessage
+      });
       return;
     }
 
@@ -170,43 +178,20 @@ export default function Chat() {
       return;
     }
 
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setMessageCount(newCount);
     setIsLoading(true);
 
     try {
-      // Build conversation context (role was set at conversation start)
-      const conversationHistory = buildConversationHistory();
-      
-      // Construct prompt with conversation history
-      const fullPrompt = `${conversationHistory.map(msg => {
-        if (msg.role === 'system') return `=== ROL AI ===\n${msg.content}`;
-        return `${msg.role === 'user' ? 'Utilizator' : 'Tu'}: ${msg.content}`;
-      }).join('\n\n')}
-
-Utilizator: ${userMessage}
-
-Răspunde conform rolului tău:`;
-
-      // Call Gemini through Base44's InvokeLLM
-      const response = await base44.integrations.Core.InvokeLLM({
-        prompt: fullPrompt,
-        add_context_from_internet: false
+      // Send message through agent - Claude Sonnet 4.5 will respond
+      await base44.agents.addMessage(conversation, {
+        role: 'user',
+        content: userMessage
       });
-
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: response 
-      }]);
+      
       setIsLoading(false);
-
     } catch (error) {
       console.error('Error sending message:', error);
       setIsLoading(false);
-      setMessages(prev => [...prev, { 
-        role: 'assistant', 
-        content: 'Îmi pare rău, a apărut o eroare. Te rog să încerci din nou.' 
-      }]);
     }
   };
 
@@ -273,7 +258,7 @@ Răspunde conform rolului tău:`;
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
-          {messages.filter(msg => !msg.hidden).map((msg, index) => (
+          {messages.filter(msg => msg.role !== 'system').map((msg, index) => (
             <ChatBubble
               key={index}
               message={msg.content}
