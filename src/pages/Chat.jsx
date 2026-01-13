@@ -154,16 +154,19 @@ export default function Chat() {
     
     const normalizedText = normalize(text);
     
-    // Check if message is very short (potential blockage/silence)
-    const tacereTrigger = prependPrompts.find(p => p.trigger_name === 'TACERE');
-    if (text.trim().length <= 3 && text.trim().length > 0 && tacereTrigger) {
-      return tacereTrigger.prompt;
+    // 1️⃣ Check semantic triggers FIRST (triggers with keywords)
+    for (const trigger of prependPrompts) {
+      if (trigger.trigger_name !== 'TACERE' && trigger.keywords.some(keyword => normalizedText.includes(normalize(keyword)))) {
+        return trigger.prompt;
+      }
     }
     
-    // Check all triggers from database
-    for (const trigger of prependPrompts) {
-      if (trigger.keywords.some(keyword => normalizedText.includes(normalize(keyword)))) {
-        return trigger.prompt;
+    // 2️⃣ Check silence ONLY if truly empty or just dots
+    const trimmed = text.trim();
+    if ((trimmed === '' || trimmed === '...' || trimmed === '.') && prependPrompts.length > 0) {
+      const tacereTrigger = prependPrompts.find(p => p.trigger_name === 'TACERE');
+      if (tacereTrigger) {
+        return tacereTrigger.prompt;
       }
     }
     
