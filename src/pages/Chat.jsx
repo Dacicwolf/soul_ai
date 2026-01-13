@@ -166,16 +166,24 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
+      // Build full system prompt (General + Specific pentru modul selectat)
+      const systemPrompt = getSystemPrompt();
+      
       // Build conversation context
       const conversationHistory = buildConversationHistory();
-      const fullPrompt = `${getSystemPrompt()}
+      
+      // Construct full prompt with clear sections
+      const fullPrompt = `=== ROL AI ===
+${systemPrompt}
 
-Istoric conversație:
-${conversationHistory.map(msg => `${msg.role === 'user' ? 'Utilizator' : 'Tu'}: ${msg.content}`).join('\n')}
+=== CONTEXT CONVERSAȚIE ===
+${conversationHistory.length > 1 ? conversationHistory.slice(0, -1).map(msg => `${msg.role === 'user' ? 'Utilizator' : 'Tu'}: ${msg.content}`).join('\n') : 'Conversație nouă'}
 
+=== MESAJ CURENT ===
 Utilizator: ${userMessage}
 
-Răspunde empatic și concis:`;
+=== INSTRUCȚIUNI ===
+Răspunde conform rolului tău, ținând cont de contextul conversației. Maxim 3-4 fraze scurte, empatic și concis:`;
 
       // Call Gemini through Base44's InvokeLLM
       const response = await base44.integrations.Core.InvokeLLM({
