@@ -98,8 +98,6 @@ export default function Chat() {
           mode: mode
         }
       });
-      setConversationId(newConversation.id);
-      setConversation(newConversation);
       
       // Send system prompt and initial greeting
       const systemPrompt = getSystemPrompt();
@@ -113,6 +111,10 @@ export default function Chat() {
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
       });
+      
+      // Set conversation after messages are added
+      setConversationId(newConversation.id);
+      setConversation(newConversation);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
