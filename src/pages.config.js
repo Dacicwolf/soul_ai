@@ -1,14 +1,14 @@
-import Start from './pages/Start';
+import Chat from './pages/Chat';
 import ChooseMode from './pages/ChooseMode';
 import Disclaimer from './pages/Disclaimer';
-import Chat from './pages/Chat';
+import Start from './pages/Start';
 
 
 export const PAGES = {
-    "Start": Start,
+    "Chat": Chat,
     "ChooseMode": ChooseMode,
     "Disclaimer": Disclaimer,
-    "Chat": Chat,
+    "Start": Start,
 }
 
 export const pagesConfig = {

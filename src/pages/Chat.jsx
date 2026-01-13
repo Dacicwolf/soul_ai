@@ -91,6 +91,22 @@ export default function Chat() {
     return SAFETY_KEYWORDS.some(keyword => lowerText.includes(keyword));
   };
 
+  const getSystemPrompt = () => {
+    const prompts = {
+      adult_stresat: 'Ești un companion AI empatic și cald specializat în suportul adulților stresați. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre presiunea de la job, responsabilități și burnout. NU oferi sfaturi medicale sau terapie. Fii calm, pragmatic și non-judgmental. Răspunde în română, maxim 3-4 fraze scurte.',
+      parinte: 'Ești un companion AI empatic și cald specializat în suportul părinților. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre provocările și bucuriile parentale. NU oferi sfaturi medicale sau terapie. Fii înțelegător și non-judgmental. Răspunde în română, maxim 3-4 fraze scurte.',
+      tanar: 'Ești un companion AI empatic și cald specializat în suportul tinerilor. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre identitate, relații și viitor. NU oferi sfaturi medicale sau terapie. Fii accesibil și relatable. Răspunde în română, maxim 3-4 fraze scurte.'
+    };
+    return prompts[mode];
+  };
+
+  const buildConversationHistory = () => {
+    return messages.map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
+  };
+
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
     if (safetyLockCount > 0) {
@@ -125,32 +141,28 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      const conversation = await base44.agents.getConversation(conversationId);
-      
-      await base44.agents.addMessage(conversation, {
-        role: 'user',
-        content: `[Mod: ${mode}] ${userMessage}`
+      // Build conversation context
+      const conversationHistory = buildConversationHistory();
+      const fullPrompt = `${getSystemPrompt()}
+
+Istoric conversație:
+${conversationHistory.map(msg => `${msg.role === 'user' ? 'Utilizator' : 'Tu'}: ${msg.content}`).join('\n')}
+
+Utilizator: ${userMessage}
+
+Răspunde empatic și concis:`;
+
+      // Call Gemini through Base44's InvokeLLM
+      const response = await base44.integrations.Core.InvokeLLM({
+        prompt: fullPrompt,
+        add_context_from_internet: false
       });
 
-      // Subscribe to updates
-      const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-        if (data.messages && data.messages.length > 0) {
-          const lastMessage = data.messages[data.messages.length - 1];
-          if (lastMessage.role === 'assistant' && lastMessage.content) {
-            setMessages(prev => {
-              const filtered = prev.filter(m => !(m.role === 'assistant' && m.isStreaming));
-              return [...filtered, { role: 'assistant', content: lastMessage.content }];
-            });
-            setIsLoading(false);
-          }
-        }
-      });
-
-      // Cleanup after 30 seconds max
-      setTimeout(() => {
-        unsubscribe();
-        setIsLoading(false);
-      }, 30000);
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: response 
+      }]);
+      setIsLoading(false);
 
     } catch (error) {
       console.error('Error sending message:', error);
