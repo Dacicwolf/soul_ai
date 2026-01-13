@@ -92,6 +92,9 @@ export default function Chat() {
 
   const initConversation = async () => {
     try {
+      // Show initial message immediately
+      setMessages([{ role: 'assistant', content: INITIAL_MESSAGES[mode] }]);
+      
       const newConversation = await base44.agents.createConversation({
         agent_name: 'companion',
         metadata: {
