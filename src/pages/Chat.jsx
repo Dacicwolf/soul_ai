@@ -94,6 +94,11 @@ export default function Chat() {
 
   const initConversation = async () => {
     try {
+      // Set initial message immediately
+      setMessages([
+        { role: 'assistant', content: INITIAL_MESSAGES[mode] }
+      ]);
+      
       const newConversation = await base44.agents.createConversation({
         agent_name: 'companion',
         metadata: {
@@ -102,10 +107,7 @@ export default function Chat() {
         }
       });
       
-      setConversationId(newConversation.id);
-      setConversation(newConversation);
-      
-      // Send system prompt and initial greeting
+      // Send system prompt
       const systemPrompt = getSystemPrompt();
       await base44.agents.addMessage(newConversation, {
         role: 'system',
@@ -118,10 +120,9 @@ export default function Chat() {
         content: INITIAL_MESSAGES[mode]
       });
       
-      // Initialize messages in state to show immediately
-      setMessages([
-        { role: 'assistant', content: INITIAL_MESSAGES[mode] }
-      ]);
+      // Set conversation after messages are added
+      setConversationId(newConversation.id);
+      setConversation(newConversation);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
