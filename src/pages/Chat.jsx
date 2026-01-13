@@ -283,7 +283,7 @@ Răspunde conform rolului tău:`;
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
-          {messages.map((msg, index) => (
+          {messages.filter(msg => !msg.hidden).map((msg, index) => (
             <ChatBubble
               key={index}
               message={msg.content}
