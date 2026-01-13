@@ -81,7 +81,10 @@ export default function Chat() {
     if (!conversationId) return;
 
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      setMessages(data.messages || []);
+      const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
+      if (filteredMessages.length > 0) {
+        setMessages(filteredMessages);
+      }
     });
 
     return () => {
