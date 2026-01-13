@@ -94,11 +94,6 @@ export default function Chat() {
 
   const initConversation = async () => {
     try {
-      // Set initial message immediately
-      setMessages([
-        { role: 'assistant', content: INITIAL_MESSAGES[mode] }
-      ]);
-      
       const newConversation = await base44.agents.createConversation({
         agent_name: 'companion',
         metadata: {
@@ -106,6 +101,10 @@ export default function Chat() {
           mode: mode
         }
       });
+      
+      // Set conversation first so it's available for sending messages
+      setConversation(newConversation);
+      setConversationId(newConversation.id);
       
       // Send system prompt
       const systemPrompt = getSystemPrompt();
@@ -119,10 +118,6 @@ export default function Chat() {
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
       });
-      
-      // Set conversation after messages are added
-      setConversationId(newConversation.id);
-      setConversation(newConversation);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
