@@ -136,27 +136,23 @@ export default function Chat() {
     }
   };
 
-  const normalizeText = (text) => {
-    return text
+  const normalize = (str) =>
+    str
       .toLowerCase()
-      .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '')
-      .replace(/ă/g, 'a')
-      .replace(/â/g, 'a')
-      .replace(/î/g, 'i')
-      .replace(/ș/g, 's')
-      .replace(/ț/g, 't');
-  };
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^\w\s]/g, "")
+      .trim();
 
   const checkSafetyKeywords = (text) => {
-    const normalizedText = normalizeText(text);
-    return SAFETY_KEYWORDS.some(keyword => normalizedText.includes(normalizeText(keyword)));
+    const normalizedText = normalize(text);
+    return SAFETY_KEYWORDS.some(keyword => normalizedText.includes(normalize(keyword)));
   };
 
   const detectPrependTrigger = (text) => {
     if (!prependPrompts || prependPrompts.length === 0) return null;
     
-    const normalizedText = normalizeText(text);
+    const normalizedText = normalize(text);
     
     // Check if message is very short (potential blockage/silence)
     const tacereTrigger = prependPrompts.find(p => p.trigger_name === 'TACERE');
@@ -166,7 +162,7 @@ export default function Chat() {
     
     // Check all triggers from database
     for (const trigger of prependPrompts) {
-      if (trigger.keywords.some(keyword => normalizedText.includes(normalizeText(keyword)))) {
+      if (trigger.keywords.some(keyword => normalizedText.includes(normalize(keyword)))) {
         return trigger.prompt;
       }
     }
