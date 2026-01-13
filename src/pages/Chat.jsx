@@ -87,10 +87,27 @@ export default function Chat() {
       });
       setConversationId(conversation.id);
       
+      // Build and send the complete role (General + Specific) as system context
+      const systemPrompt = getSystemPrompt();
+      
+      // Send initial system prompt to establish AI's role
+      const initialPrompt = `${systemPrompt}
+
+Acum începe conversația cu utilizatorul. Salută-l conform rolului tău și modului selectat (${MODE_LABELS[mode]}). Maxim 2-3 fraze scurte, calde și invitante:`;
+
+      const greeting = await base44.integrations.Core.InvokeLLM({
+        prompt: initialPrompt,
+        add_context_from_internet: false
+      });
+      
       // Add initial AI greeting
       setMessages([{
+        role: 'system',
+        content: systemPrompt,
+        hidden: true
+      }, {
         role: 'assistant',
-        content: INITIAL_MESSAGES[mode]
+        content: greeting
       }]);
     } catch (error) {
       console.error('Error creating conversation:', error);
@@ -126,10 +143,12 @@ export default function Chat() {
   };
 
   const buildConversationHistory = () => {
-    return messages.map(msg => ({
-      role: msg.role,
-      content: msg.content
-    }));
+    return messages
+      .filter(msg => !msg.hidden)
+      .map(msg => ({
+        role: msg.role,
+        content: msg.content
+      }));
   };
 
   const handleSendMessage = async () => {
@@ -166,24 +185,18 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      // Build full system prompt (General + Specific pentru modul selectat)
-      const systemPrompt = getSystemPrompt();
-      
-      // Build conversation context
+      // Build conversation context (role was set at conversation start)
       const conversationHistory = buildConversationHistory();
       
-      // Construct full prompt with clear sections
-      const fullPrompt = `=== ROL AI ===
-${systemPrompt}
+      // Construct prompt with conversation history
+      const fullPrompt = `${conversationHistory.map(msg => {
+        if (msg.role === 'system') return `=== ROL AI ===\n${msg.content}`;
+        return `${msg.role === 'user' ? 'Utilizator' : 'Tu'}: ${msg.content}`;
+      }).join('\n\n')}
 
-=== CONTEXT CONVERSAȚIE ===
-${conversationHistory.length > 1 ? conversationHistory.slice(0, -1).map(msg => `${msg.role === 'user' ? 'Utilizator' : 'Tu'}: ${msg.content}`).join('\n') : 'Conversație nouă'}
-
-=== MESAJ CURENT ===
 Utilizator: ${userMessage}
 
-=== INSTRUCȚIUNI ===
-Răspunde conform rolului tău, ținând cont de contextul conversației. Maxim 3-4 fraze scurte, empatic și concis:`;
+Răspunde conform rolului tău:`;
 
       // Call Gemini through Base44's InvokeLLM
       const response = await base44.integrations.Core.InvokeLLM({
