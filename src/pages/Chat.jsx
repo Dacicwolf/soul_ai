@@ -99,6 +99,9 @@ export default function Chat() {
         }
       });
       
+      setConversationId(newConversation.id);
+      setConversation(newConversation);
+      
       // Send system prompt and initial greeting
       const systemPrompt = getSystemPrompt();
       await base44.agents.addMessage(newConversation, {
@@ -112,9 +115,10 @@ export default function Chat() {
         content: INITIAL_MESSAGES[mode]
       });
       
-      // Set conversation after messages are added
-      setConversationId(newConversation.id);
-      setConversation(newConversation);
+      // Initialize messages in state to show immediately
+      setMessages([
+        { role: 'assistant', content: INITIAL_MESSAGES[mode] }
+      ]);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
