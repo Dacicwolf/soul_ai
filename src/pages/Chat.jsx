@@ -313,13 +313,21 @@ export default function Chat() {
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
-          {messages.filter(msg => msg.role !== 'system').map((msg, index) => (
-            <ChatBubble
-              key={index}
-              message={msg.content}
-              isUser={msg.role === 'user'}
-            />
-          ))}
+            {messages.filter(msg => msg.role !== 'system').map((msg, index) => {
+              // Extract original user message if prepend was used
+              let displayContent = msg.content;
+              if (msg.role === 'user' && msg.content.includes('---\nMesaj utilizator:')) {
+                displayContent = msg.content.split('---\nMesaj utilizator:')[1].trim();
+              }
+
+              return (
+                <ChatBubble
+                  key={index}
+                  message={displayContent}
+                  isUser={msg.role === 'user'}
+                />
+              );
+            })}
           
           {isLoading && <ChatBubble isTyping />}
           
