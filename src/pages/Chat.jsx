@@ -32,9 +32,9 @@ const MODE_LABELS = {
 };
 
 const INITIAL_MESSAGES = {
-  adult_stresat: 'Bună! Mă bucur că ești aici. Știu că viața de adult poate fi copleșitoare uneori - job, responsabilități, presiune din toate părțile. Sunt aici să te ascult. Cum te simți azi?',
-  parinte: 'Bună! Mă bucur să fiu alături de tine. A fi părinte e o călătorie frumoasă, dar și plină de provocări. Sunt aici să te ascult fără să te judec. Ce ai pe suflet?',
-  tanar: 'Hey! Mă bucur că ai venit să vorbim. Știu că uneori e greu să te descurci cu tot ce se întâmplă - școală, prieteni, viitor, identitate... Sunt aici pentru tine. Ce te frământă?'
+  adult_stresat: 'Bună! Sunt aici să te ascult. Te pot ajuta să-ți clarifici gândurile. Putem vorbi despre ce te apasă acum sau despre o situație concretă.',
+  parinte: 'Bună! Sunt aici să te ascult. Putem vorbi despre ce te apasă acum sau despre o situație din familie care te obosește.',
+  tanar: 'Hey! Sunt aici să te ascult. Putem vorbi despre ce te frământă acum sau despre o situație care te încurcă.'
 };
 
 export default function Chat() {
