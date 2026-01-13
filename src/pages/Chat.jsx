@@ -229,28 +229,25 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      // Detect if message matches a prepend trigger
-      const prependPrompt = detectPrependTrigger(userMessage);
-      
-      // If prepend prompt exists, send it as system message first
-      if (prependPrompt) {
+        // Detect if message matches a prepend trigger
+        const prependPrompt = detectPrependTrigger(userMessage);
+
+        // If prepend prompt exists, prepend it to the user message with special formatting
+        const messageToSend = prependPrompt 
+          ? `[CONTEXT SPECIAL]\n${prependPrompt}\n[/CONTEXT SPECIAL]\n\nMesajul utilizatorului: ${userMessage}`
+          : userMessage;
+
+        // Send user message (with prepend if exists)
         await base44.agents.addMessage(conversation, {
-          role: 'system',
-          content: prependPrompt
+          role: 'user',
+          content: messageToSend
         });
+
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error sending message:', error);
+        setIsLoading(false);
       }
-      
-      // Send user message
-      await base44.agents.addMessage(conversation, {
-        role: 'user',
-        content: userMessage
-      });
-      
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setIsLoading(false);
-    }
   };
 
   const handleUnlockPremium = () => {
