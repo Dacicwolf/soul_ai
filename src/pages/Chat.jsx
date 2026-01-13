@@ -232,15 +232,18 @@ export default function Chat() {
         // Detect if message matches a prepend trigger
         const prependPrompt = detectPrependTrigger(userMessage);
 
-        // If prepend prompt exists, prepend it to the user message with special formatting
-        const messageToSend = prependPrompt 
-          ? `[CONTEXT SPECIAL]\n${prependPrompt}\n[/CONTEXT SPECIAL]\n\nMesajul utilizatorului: ${userMessage}`
-          : userMessage;
+        // If prepend prompt exists, send it as system message first (won't be displayed)
+        if (prependPrompt) {
+          await base44.agents.addMessage(conversation, {
+            role: 'system',
+            content: prependPrompt
+          });
+        }
 
-        // Send user message (with prepend if exists)
+        // Send user message
         await base44.agents.addMessage(conversation, {
           role: 'user',
-          content: messageToSend
+          content: userMessage
         });
 
         setIsLoading(false);
