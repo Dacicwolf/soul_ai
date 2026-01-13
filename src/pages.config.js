@@ -4,6 +4,7 @@ import Disclaimer from './pages/Disclaimer';
 import Home from './pages/Home';
 import PromptManagement from './pages/PromptManagement';
 import Start from './pages/Start';
+import PrependManagement from './pages/PrependManagement';
 
 
 export const PAGES = {
@@ -13,6 +14,7 @@ export const PAGES = {
     "Home": Home,
     "PromptManagement": PromptManagement,
     "Start": Start,
+    "PrependManagement": PrependManagement,
 }
 
 export const pagesConfig = {

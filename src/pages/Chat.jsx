@@ -22,52 +22,7 @@ const SAFETY_KEYWORDS = [
   'vreau să renunț la viață'
 ];
 
-const PREPEND_TRIGGERS = {
-  RESPINGERE: {
-    keywords: ['nu cred că ajută asta', 'nu are sens', 'nu funcționează'],
-    prompt: `UTILIZATORUL EXPRIMĂ RESPINGERE SAU NEÎNCREDERE.
-Răspunde scurt, fără scuze, fără explicații.
-NU te justifica.
-Pune o singură întrebare.
-Folosește EXACT această replică:
-„Înțeleg. Ce anume simți că nu ajută acum?"`
-  },
-  TACERE: {
-    keywords: ['nu știu ce să zic', '...'],
-    prompt: `UTILIZATORUL EXPRIMĂ BLOCAJ SAU TĂCERE.
-NU pune întrebări.
-Răspunsul are maximum 2 propoziții.
-Folosește EXACT:
-„E în regulă. Putem sta puțin aici, fără grabă."`
-  },
-  FURIE: {
-    keywords: ['m-am săturat de tot', 'nu mai suport', 'mă enervează tot'],
-    prompt: `UTILIZATORUL EXPRIMĂ FURIE SAU DESCĂRCARE EMOȚIONALĂ.
-NU valida excesiv.
-NU escalada.
-Pune o singură întrebare.
-Folosește EXACT:
-„Sună ca multă tensiune. Ce te-a adus în punctul ăsta?"`
-  },
-  AUTO_MINIMALIZARE: {
-    keywords: ['probabil exagerez', 'nu e mare lucru', 'poate sunt eu prea sensibil'],
-    prompt: `UTILIZATORUL SE AUTO-MINIMALIZEAZĂ.
-NU contrazice.
-NU valida excesiv.
-Pune o singură întrebare.
-Folosește EXACT:
-„Ce te face să spui asta?"`
-  },
-  EPUIZARE: {
-    keywords: ['nu mai pot', 'sunt terminat', 'sunt terminată', 'simt că cedez'],
-    prompt: `UTILIZATORUL EXPRIMĂ EPUIZARE.
-NU escalada la criză.
-NU menționa resurse externe.
-Pune o singură întrebare de clarificare.
-Folosește EXACT:
-„Sună foarte greu. Ce înseamnă «nu mai pot» pentru tine acum?"`
-  }
-};
+
 
 const MAX_MESSAGES = 10;
 const PAYWALL_TRIGGER = 8;
@@ -110,6 +65,16 @@ export default function Chat() {
       return result.length > 0 ? result[0] : null;
     },
     initialData: null,
+  });
+
+  // Load prepend prompts
+  const { data: prependPrompts } = useQuery({
+    queryKey: ['prependPrompts'],
+    queryFn: async () => {
+      const result = await base44.entities.PrependPrompts.list();
+      return result.filter(p => p.is_active);
+    },
+    initialData: [],
   });
 
   const scrollToBottom = () => {
@@ -177,15 +142,18 @@ export default function Chat() {
   };
 
   const detectPrependTrigger = (text) => {
+    if (!prependPrompts || prependPrompts.length === 0) return null;
+    
     const lowerText = text.toLowerCase();
     
     // Check if message is very short (potential blockage/silence)
-    if (text.trim().length <= 3 && text.trim().length > 0) {
-      return PREPEND_TRIGGERS.TACERE.prompt;
+    const tacereTrigger = prependPrompts.find(p => p.trigger_name === 'TACERE');
+    if (text.trim().length <= 3 && text.trim().length > 0 && tacereTrigger) {
+      return tacereTrigger.prompt;
     }
     
-    // Check all triggers
-    for (const [key, trigger] of Object.entries(PREPEND_TRIGGERS)) {
+    // Check all triggers from database
+    for (const trigger of prependPrompts) {
       if (trigger.keywords.some(keyword => lowerText.includes(keyword))) {
         return trigger.prompt;
       }
