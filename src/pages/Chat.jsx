@@ -90,24 +90,14 @@ export default function Chat() {
       // Build and send the complete role (General + Specific) as system context
       const systemPrompt = getSystemPrompt();
       
-      // Send initial system prompt to establish AI's role
-      const initialPrompt = `${systemPrompt}
-
-Acum începe conversația cu utilizatorul. Salută-l conform rolului tău și modului selectat (${MODE_LABELS[mode]}). Maxim 2-3 fraze scurte, calde și invitante:`;
-
-      const greeting = await base44.integrations.Core.InvokeLLM({
-        prompt: initialPrompt,
-        add_context_from_internet: false
-      });
-      
-      // Add initial AI greeting
+      // Add initial AI greeting from predefined messages
       setMessages([{
         role: 'system',
         content: systemPrompt,
         hidden: true
       }, {
         role: 'assistant',
-        content: greeting
+        content: INITIAL_MESSAGES[mode]
       }]);
     } catch (error) {
       console.error('Error creating conversation:', error);

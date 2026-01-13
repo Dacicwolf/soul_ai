@@ -1,18 +1,18 @@
 import Chat from './pages/Chat';
 import ChooseMode from './pages/ChooseMode';
 import Disclaimer from './pages/Disclaimer';
-import Start from './pages/Start';
-import PromptManagement from './pages/PromptManagement';
 import Home from './pages/Home';
+import PromptManagement from './pages/PromptManagement';
+import Start from './pages/Start';
 
 
 export const PAGES = {
     "Chat": Chat,
     "ChooseMode": ChooseMode,
     "Disclaimer": Disclaimer,
-    "Start": Start,
-    "PromptManagement": PromptManagement,
     "Home": Home,
+    "PromptManagement": PromptManagement,
+    "Start": Start,
 }
 
 export const pagesConfig = {
