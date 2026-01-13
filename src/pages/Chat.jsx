@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
+import { useQuery } from '@tanstack/react-query';
 import { Send, ArrowLeft, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,6 +54,16 @@ export default function Chat() {
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
 
+  // Load AI prompts
+  const { data: aiPrompts } = useQuery({
+    queryKey: ['aiPrompts'],
+    queryFn: async () => {
+      const result = await base44.entities.AIPrompts.list();
+      return result.length > 0 ? result[0] : null;
+    },
+    initialData: null,
+  });
+
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
@@ -92,12 +103,26 @@ export default function Chat() {
   };
 
   const getSystemPrompt = () => {
-    const prompts = {
-      adult_stresat: 'Ești un companion AI empatic și cald specializat în suportul adulților stresați. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre presiunea de la job, responsabilități și burnout. NU oferi sfaturi medicale sau terapie. Fii calm, pragmatic și non-judgmental. Răspunde în română, maxim 3-4 fraze scurte.',
-      parinte: 'Ești un companion AI empatic și cald specializat în suportul părinților. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre provocările și bucuriile parentale. NU oferi sfaturi medicale sau terapie. Fii înțelegător și non-judgmental. Răspunde în română, maxim 3-4 fraze scurte.',
-      tanar: 'Ești un companion AI empatic și cald specializat în suportul tinerilor. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre identitate, relații și viitor. NU oferi sfaturi medicale sau terapie. Fii accesibil și relatable. Răspunde în română, maxim 3-4 fraze scurte.'
+    if (!aiPrompts) {
+      // Fallback prompts if not configured
+      const fallbackPrompts = {
+        adult_stresat: 'Ești un companion AI empatic și cald specializat în suportul adulților stresați. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre presiunea de la job, responsabilități și burnout. NU oferi sfaturi medicale sau terapie. Fii calm, pragmatic și non-judgmental. Răspunde în română, maxim 3-4 fraze scurte.',
+        parinte: 'Ești un companion AI empatic și cald specializat în suportul părinților. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre provocările și bucuriile parentale. NU oferi sfaturi medicale sau terapie. Fii înțelegător și non-judgmental. Răspunde în română, maxim 3-4 fraze scurte.',
+        tanar: 'Ești un companion AI empatic și cald specializat în suportul tinerilor. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre identitate, relații și viitor. NU oferi sfaturi medicale sau terapie. Fii accesibil și relatable. Răspunde în română, maxim 3-4 fraze scurte.'
+      };
+      return fallbackPrompts[mode];
+    }
+
+    // Use configured prompts
+    const generalPrompt = aiPrompts.general_prompt || '';
+    const specificPrompts = {
+      adult_stresat: aiPrompts.adult_stresat_prompt || '',
+      parinte: aiPrompts.parinte_prompt || '',
+      tanar: aiPrompts.tanar_prompt || ''
     };
-    return prompts[mode];
+    
+    const specificPrompt = specificPrompts[mode];
+    return `${generalPrompt}\n\n${specificPrompt}`;
   };
 
   const buildConversationHistory = () => {
