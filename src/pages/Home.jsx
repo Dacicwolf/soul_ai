@@ -90,7 +90,9 @@ export default function Home() {
           transition={{ delay: 0.6 }}
           className="text-gray-500 text-base leading-relaxed mb-12"
         >
-          Un companion AI care te ajută să înțelegi mai bine ce simți, pas cu pas.
+          Un companion AI care te ajută, pas cu pas,
+          <br />
+          să înțelegi mai bine ce simți.
         </motion.p>
 
         {/* CTA Button */}
