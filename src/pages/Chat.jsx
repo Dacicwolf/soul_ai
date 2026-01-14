@@ -86,8 +86,22 @@ export default function Chat() {
   }, [messages, showSafetyResponse]);
 
   useEffect(() => {
-    initConversation();
+    checkAuthAndInit();
   }, []);
+
+  const checkAuthAndInit = async () => {
+    try {
+      const isAuth = await base44.auth.isAuthenticated();
+      if (!isAuth) {
+        base44.auth.redirectToLogin(window.location.href);
+        return;
+      }
+      initConversation();
+    } catch (error) {
+      console.error('Auth check failed:', error);
+      base44.auth.redirectToLogin(window.location.href);
+    }
+  };
 
   useEffect(() => {
     if (!conversationId) return;
