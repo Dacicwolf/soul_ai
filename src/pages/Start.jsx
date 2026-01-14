@@ -1,11 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
 import { Heart, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { base44 } from '@/api/base44Client';
 
 export default function Start() {
+  const handleStart = () => {
+    base44.auth.redirectToLogin(window.location.origin);
+  };
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-rose-50 flex flex-col items-center justify-center p-6">
       {/* Decorative elements */}
@@ -66,14 +68,13 @@ export default function Start() {
           transition={{ delay: 0.8 }}
           className="w-full"
         >
-          <Link to={createPageUrl('ChooseMode')}>
-            <Button 
-              size="lg"
-              className="w-full py-6 text-lg font-medium bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 rounded-2xl shadow-lg shadow-purple-200/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-300/50 hover:-translate-y-0.5"
-            >
-              Începe
-            </Button>
-          </Link>
+          <Button 
+            onClick={handleStart}
+            size="lg"
+            className="w-full py-6 text-lg font-medium bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 rounded-2xl shadow-lg shadow-purple-200/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-300/50 hover:-translate-y-0.5"
+          >
+            Începe
+          </Button>
         </motion.div>
       </motion.div>
 

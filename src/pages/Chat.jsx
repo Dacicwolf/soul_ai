@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { base44 } from '@/api/base44Client';
 import { useQuery } from '@tanstack/react-query';
-import { Send, ArrowLeft, MoreVertical } from 'lucide-react';
+import { Send, ArrowLeft, LogOut } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Link } from 'react-router-dom';
@@ -309,27 +309,37 @@ export default function Chat() {
           </div>
           
           {/* Message counter */}
-          {!hasPremium && (
-            <div className="flex items-center gap-2">
-              <div className="text-sm font-medium text-gray-600">
-                <span className={messageCount >= PAYWALL_TRIGGER ? 'text-amber-500' : 'text-indigo-500'}>
-                  {messageCount}
-                </span>
-                <span className="text-gray-400">/{MAX_MESSAGES}</span>
+          <div className="flex items-center gap-3">
+            {!hasPremium && (
+              <div className="flex items-center gap-2">
+                <div className="text-sm font-medium text-gray-600">
+                  <span className={messageCount >= PAYWALL_TRIGGER ? 'text-amber-500' : 'text-indigo-500'}>
+                    {messageCount}
+                  </span>
+                  <span className="text-gray-400">/{MAX_MESSAGES}</span>
+                </div>
+                <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(messageCount / MAX_MESSAGES) * 100}%` }}
+                    className={`h-full rounded-full ${
+                      messageCount >= PAYWALL_TRIGGER 
+                        ? 'bg-gradient-to-r from-amber-400 to-orange-500' 
+                        : 'bg-gradient-to-r from-indigo-400 to-purple-500'
+                    }`}
+                  />
+                </div>
               </div>
-              <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(messageCount / MAX_MESSAGES) * 100}%` }}
-                  className={`h-full rounded-full ${
-                    messageCount >= PAYWALL_TRIGGER 
-                      ? 'bg-gradient-to-r from-amber-400 to-orange-500' 
-                      : 'bg-gradient-to-r from-indigo-400 to-purple-500'
-                  }`}
-                />
-              </div>
-            </div>
-          )}
+            )}
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="rounded-full"
+              onClick={() => base44.auth.logout()}
+            >
+              <LogOut className="w-5 h-5 text-gray-600" />
+            </Button>
+          </div>
         </div>
       </motion.header>
 

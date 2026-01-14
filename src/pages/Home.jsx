@@ -101,7 +101,7 @@ export default function Home() {
               size="lg"
               className="w-full py-6 text-lg font-medium bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 rounded-2xl shadow-lg shadow-purple-200/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-300/50 hover:-translate-y-0.5"
             >
-              Începe
+              Continuă
             </Button>
           </Link>
         </motion.div>
