@@ -115,7 +115,7 @@ export default function ChooseMode() {
           </p>
           
           <Link 
-            to={selectedMode ? `${createPageUrl('Disclaimer')}?mode=${selectedMode}` : '#'}
+            to={selectedMode ? `${createPageUrl('Chat')}?mode=${selectedMode}` : '#'}
             className={!selectedMode ? 'pointer-events-none' : ''}
           >
             <Button 
