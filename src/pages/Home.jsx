@@ -88,7 +88,7 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-gray-500 text-sm leading-relaxed mb-12"
+          className="text-gray-500 text-base leading-relaxed mb-12"
         >
           Un companion AI care te ajută să înțelegi mai bine
           <br />
