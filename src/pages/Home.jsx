@@ -118,10 +118,12 @@ export default function Home() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="absolute bottom-8 max-w-sm text-gray-400 text-xs flex items-center justify-center gap-1.5"
+        className="absolute bottom-8 w-full max-w-sm px-6"
       >
-        <Info className="w-3 h-3 flex-shrink-0" />
-        <span>Această aplicație oferă suport emoțional general și nu înlocuiește ajutorul unui specialist.</span>
+        <div className="flex items-start gap-1.5 text-gray-400 text-xs">
+          <Info className="w-3 h-3 flex-shrink-0 mt-0.5" />
+          <span>Această aplicație oferă suport emoțional general și nu înlocuiește ajutorul unui specialist.</span>
+        </div>
       </motion.div>
     </div>
   );
