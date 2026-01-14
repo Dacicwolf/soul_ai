@@ -118,9 +118,9 @@ export default function Home() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="absolute bottom-8 text-gray-400 text-xs flex items-center gap-1.5"
+        className="absolute bottom-8 max-w-sm text-gray-400 text-xs flex items-center justify-center gap-1.5"
       >
-        <Info className="w-3 h-3" />
+        <Info className="w-3 h-3 flex-shrink-0" />
         <span>Această aplicație oferă suport emoțional general și nu înlocuiește ajutorul unui specialist.</span>
       </motion.div>
     </div>
