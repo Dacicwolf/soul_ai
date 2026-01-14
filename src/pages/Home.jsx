@@ -88,9 +88,11 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-gray-500 text-sm mb-12"
+          className="text-gray-500 text-xs leading-relaxed mb-12"
         >
-          Companion AI pentru sufletul tău
+          Un companion AI care te ajută să înțelegi mai bine
+          <br />
+          ce simți, pas cu pas.
         </motion.p>
 
         {/* CTA Button */}
