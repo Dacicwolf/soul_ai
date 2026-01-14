@@ -76,7 +76,11 @@ export default function Start() {
           transition={{ delay: 0.4 }}
           className="text-2xl md:text-3xl font-light text-gray-800 leading-relaxed mb-4"
         >
-          Un spațiu sigur pentru a-ți clarifica gândurile.
+          Bun venit!
+          <br />
+          Acesta este un spațiu sigur 
+          <br />
+          pentru a-ți clarifica gândurile.
         </motion.h1>
 
         <motion.p
