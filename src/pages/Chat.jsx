@@ -197,7 +197,13 @@ export default function Chat() {
   };
 
   const handleSendMessage = async () => {
-    if (!inputValue.trim() || isLoading || !conversation) return;
+    if (!inputValue.trim() || isLoading) return;
+    
+    // Wait for conversation to be ready
+    if (!conversation || !conversationId) {
+      console.log('Waiting for conversation to initialize...');
+      return;
+    }
     if (safetyLockCount > 0) {
       setSafetyLockCount(prev => prev - 1);
       return;
