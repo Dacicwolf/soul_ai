@@ -4,11 +4,13 @@ import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
 import { Heart, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { base44 } from '@/api/base44Client';
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -88,12 +90,33 @@ export default function Home() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
-          className="text-gray-500 text-base leading-relaxed mb-12"
+          className="text-gray-500 text-base leading-relaxed mb-6"
         >
           Un companion AI care te ajută, pas cu pas,
           <br />
           să înțelegi mai bine ce simți.
         </motion.p>
+
+        {/* Terms Checkbox */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.7 }}
+          className="flex items-start gap-3 mb-8"
+        >
+          <Checkbox 
+            id="terms" 
+            checked={acceptedTerms}
+            onCheckedChange={setAcceptedTerms}
+            className="mt-0.5"
+          />
+          <label 
+            htmlFor="terms" 
+            className="text-sm text-gray-600 leading-relaxed cursor-pointer"
+          >
+            Accept termenii de utilizare și politica de confidențialitate.
+          </label>
+        </motion.div>
 
         {/* CTA Button */}
         <motion.div
@@ -102,10 +125,11 @@ export default function Home() {
           transition={{ delay: 0.8 }}
           className="w-full"
         >
-          <Link to={createPageUrl('ChooseMode')}>
+          <Link to={acceptedTerms ? createPageUrl('ChooseMode') : '#'} className={!acceptedTerms ? 'pointer-events-none' : ''}>
             <Button 
               size="lg"
-              className="w-full py-6 text-lg font-medium bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 rounded-2xl shadow-lg shadow-purple-200/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-300/50 hover:-translate-y-0.5"
+              disabled={!acceptedTerms}
+              className="w-full py-6 text-lg font-medium bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 rounded-2xl shadow-lg shadow-purple-200/50 transition-all duration-300 hover:shadow-xl hover:shadow-purple-300/50 hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               Continuă
             </Button>
