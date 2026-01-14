@@ -258,7 +258,7 @@ export default function Chat() {
     setShowPaywall(false);
   };
 
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
@@ -359,7 +359,7 @@ export default function Chat() {
                 ref={inputRef}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
-                onKeyPress={handleKeyPress}
+                onKeyDown={handleKeyDown}
                 placeholder={safetyLockCount > 0 ? "Ia-ți un moment..." : "Scrie un mesaj..."}
                 disabled={isLoading || (!hasPremium && messageCount >= MAX_MESSAGES) || safetyLockCount > 0}
                 className="w-full py-6 pl-4 pr-12 rounded-2xl border-gray-200 bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
