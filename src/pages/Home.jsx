@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import { createPageUrl } from '@/utils';
-import { Heart, Sparkles } from 'lucide-react';
+import { Heart, Sparkles, Info } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 
@@ -118,9 +118,10 @@ export default function Home() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1 }}
-        className="absolute bottom-8 text-gray-400 text-xs"
+        className="absolute bottom-8 text-gray-400 text-xs flex items-center gap-1.5"
       >
-        Cu grijă pentru tine ✨
+        <Info className="w-3 h-3" />
+        <span>Această aplicație oferă suport emoțional general și nu înlocuiește ajutorul unui specialist.</span>
       </motion.div>
     </div>
   );
