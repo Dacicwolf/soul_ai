@@ -163,9 +163,12 @@ export default function Chat() {
     return SAFETY_KEYWORDS.some(keyword => normalizedText.includes(normalize(keyword)));
   };
 
+  // 🔒 CONVERSATION LOGIC LOCKED
+  // Nu modifica tone, empatie sau reguli fără QA complet.
+  // Această logică este stabilă și validată.
   const detectPrependTrigger = (text) => {
     if (!prependPrompts || prependPrompts.length === 0) return null;
-    
+
     const normalizedText = normalize(text);
     
     // 1️⃣ Check semantic triggers FIRST (triggers with keywords)
@@ -252,6 +255,9 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
+        // 🔒 CONVERSATION LOGIC LOCKED
+        // Nu modifica tone, empatie sau reguli fără QA complet.
+        // Această logică este stabilă și validată.
         // Detect if message matches a prepend trigger
         const prependPrompt = detectPrependTrigger(userMessage);
 
