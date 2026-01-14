@@ -1,13 +1,40 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { Heart, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
+import { useNavigate } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
 
 export default function Start() {
-  const handleStart = () => {
-    base44.auth.redirectToLogin(window.location.origin);
+  const navigate = useNavigate();
+  const [checking, setChecking] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const isAuth = await base44.auth.isAuthenticated();
+    if (isAuth) {
+      navigate(createPageUrl('Home'));
+    } else {
+      setChecking(false);
+    }
   };
+
+  const handleStart = () => {
+    const nextUrl = `${window.location.origin}${createPageUrl('Home')}`;
+    base44.auth.redirectToLogin(nextUrl);
+  };
+
+  if (checking) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-rose-50 flex items-center justify-center">
+        <div className="w-12 h-12 rounded-full border-4 border-indigo-200 border-t-indigo-500 animate-spin" />
+      </div>
+    );
+  }
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-rose-50 flex flex-col items-center justify-center p-6">
       {/* Decorative elements */}
