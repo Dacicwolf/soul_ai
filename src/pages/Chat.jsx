@@ -126,12 +126,8 @@ export default function Chat() {
         }
       });
       
-      // Set both immediately so subscription is active
+      // Set conversation for sending messages
       setConversation(newConversation);
-      setConversationId(newConversation.id);
-      
-      // Small delay to ensure subscription is set up
-      await new Promise(resolve => setTimeout(resolve, 100));
       
       // Send system prompt
       const systemPrompt = getSystemPrompt();
@@ -145,6 +141,12 @@ export default function Chat() {
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
       });
+      
+      // Wait for messages to be saved
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Now activate subscription
+      setConversationId(newConversation.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
