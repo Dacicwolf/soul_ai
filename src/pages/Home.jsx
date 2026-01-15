@@ -114,7 +114,7 @@ export default function Home() {
             htmlFor="terms" 
             className="text-sm text-gray-600 leading-relaxed cursor-pointer"
           >
-            Accept termenii de utilizare și politica de confidențialitate.
+            Accept <Link to={createPageUrl('Disclaimer')} className="underline text-indigo-600 hover:text-indigo-800">termenii de utilizare și politica de confidențialitate</Link>.
           </label>
         </motion.div>
 

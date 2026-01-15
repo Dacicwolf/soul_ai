@@ -1,6 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { FileText } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { createPageUrl } from '@/utils';
+import { FileText, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export default function Disclaimer() {
   return (
@@ -12,6 +15,12 @@ export default function Disclaimer() {
       >
         {/* Header */}
         <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-xl p-8 mb-6">
+          <Link to={createPageUrl('Home')} className="inline-block mb-4">
+            <Button variant="ghost" size="sm" className="gap-2">
+              <ArrowLeft className="w-4 h-4" />
+              Înapoi
+            </Button>
+          </Link>
           <div className="flex items-center gap-3 mb-6">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-400 to-purple-500 flex items-center justify-center">
               <FileText className="w-6 h-6 text-white" />
