@@ -341,10 +341,10 @@ export default function Chat() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
             {messages.filter(msg => msg.role !== 'system').map((msg, index) => {
-              // Extract original user message if prepend was used
+              // Extrage mesajul original user dacă există prepend
               let displayContent = msg.content;
-              if (msg.role === 'user' && msg.content.includes('---\nMesaj utilizator:')) {
-                displayContent = msg.content.split('---\nMesaj utilizator:')[1].trim();
+              if (msg.role === 'user' && msg.content.includes('MESAJ UTILIZATOR:')) {
+                displayContent = msg.content.split('MESAJ UTILIZATOR:\n')[1].trim();
               }
 
               return (
