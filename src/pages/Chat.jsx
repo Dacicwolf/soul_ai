@@ -108,13 +108,22 @@ export default function Chat() {
 
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
-      setMessages(filteredMessages);
+      
+      // Dacă nu există niciun mesaj assistant în conversație, păstrăm mesajul de întâmpinare UI-only
+      if (filteredMessages.length === 0) {
+        setMessages([{
+          role: 'assistant',
+          content: INITIAL_MESSAGES[mode]
+        }]);
+      } else {
+        setMessages(filteredMessages);
+      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [conversationId]);
+  }, [conversationId, mode]);
 
   const initConversation = async () => {
     try {
