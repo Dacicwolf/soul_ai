@@ -126,27 +126,22 @@ export default function Chat() {
         }
       });
       
-      // Set conversation for sending messages
+      // Set conversation pentru a permite trimiterea de mesaje
       setConversation(newConversation);
+      setConversationId(newConversation.id);
       
-      // Send system prompt
+      // Trimite O SINGURĂ DATĂ prompturile system (GLOBAL + ROL)
       const systemPrompt = getSystemPrompt();
       await base44.agents.addMessage(newConversation, {
         role: 'system',
         content: systemPrompt
       });
       
-      // Add initial AI greeting
-      await base44.agents.addMessage(newConversation, {
+      // Mesajul de întâmpinare este DOAR UI - îl setăm manual
+      setMessages([{
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
-      });
-      
-      // Wait for messages to be saved
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Now activate subscription
-      setConversationId(newConversation.id);
+      }]);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
