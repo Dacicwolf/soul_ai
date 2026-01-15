@@ -118,9 +118,6 @@ export default function Chat() {
 
   const initConversation = async () => {
     try {
-      // Show initial message immediately
-      setMessages([{ role: 'assistant', content: INITIAL_MESSAGES[mode] }]);
-      
       const newConversation = await base44.agents.createConversation({
         agent_name: 'companion',
         metadata: {
@@ -129,7 +126,7 @@ export default function Chat() {
         }
       });
       
-      // Set conversation first so it's available for sending messages
+      // Set conversation first so subscription can start
       setConversation(newConversation);
       setConversationId(newConversation.id);
       
@@ -140,7 +137,7 @@ export default function Chat() {
         content: systemPrompt
       });
       
-      // Add initial AI greeting
+      // Add initial AI greeting - subscription will update messages
       await base44.agents.addMessage(newConversation, {
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
