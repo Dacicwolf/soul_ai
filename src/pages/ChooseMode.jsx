@@ -57,7 +57,7 @@ export default function ChooseMode() {
             Cum te simți azi?
           </h1>
           <p className="text-gray-500 text-sm">
-            Alege ce se apropie cel mai mult de ce trăiești acum
+            Alege ce se potrivește cel mai bine acum
           </p>
         </motion.div>
 
