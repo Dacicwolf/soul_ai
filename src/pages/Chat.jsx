@@ -126,8 +126,9 @@ export default function Chat() {
         }
       });
       
-      // Set conversation for sending messages
+      // Set both conversation and conversationId immediately
       setConversation(newConversation);
+      setConversationId(newConversation.id);
       
       // Send system prompt
       const systemPrompt = getSystemPrompt();
@@ -136,14 +137,11 @@ export default function Chat() {
         content: systemPrompt
       });
       
-      // Add initial AI greeting
+      // Add initial AI greeting - subscription will update messages automatically
       await base44.agents.addMessage(newConversation, {
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
       });
-      
-      // Start subscription AFTER messages are added
-      setConversationId(newConversation.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
