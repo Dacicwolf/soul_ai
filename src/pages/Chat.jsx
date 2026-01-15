@@ -108,13 +108,22 @@ export default function Chat() {
 
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
-      setMessages(filteredMessages);
+      
+      // Dacă nu există mesaje (doar system prompt), adaugă mesajul de întâmpinare UI-only
+      if (filteredMessages.length === 0) {
+        setMessages([{
+          role: 'assistant',
+          content: INITIAL_MESSAGES[mode]
+        }]);
+      } else {
+        setMessages(filteredMessages);
+      }
     });
 
     return () => {
       unsubscribe();
     };
-  }, [conversationId]);
+  }, [conversationId, mode]);
 
   const initConversation = async () => {
     try {
@@ -128,7 +137,6 @@ export default function Chat() {
       
       // Set conversation pentru a permite trimiterea de mesaje
       setConversation(newConversation);
-      setConversationId(newConversation.id);
       
       // Trimite O SINGURĂ DATĂ prompturile system (GLOBAL + ROL)
       const systemPrompt = getSystemPrompt();
@@ -137,11 +145,8 @@ export default function Chat() {
         content: systemPrompt
       });
       
-      // Mesajul de întâmpinare este DOAR UI - îl setăm manual
-      setMessages([{
-        role: 'assistant',
-        content: INITIAL_MESSAGES[mode]
-      }]);
+      // Activează subscription-ul (va afișa automat mesajul de întâmpinare)
+      setConversationId(newConversation.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
