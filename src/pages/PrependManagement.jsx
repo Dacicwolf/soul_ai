@@ -115,7 +115,10 @@ export default function PrependManagement() {
 
   const handleInitializeDefaults = async () => {
     for (const prepend of DEFAULT_PREPENDS) {
-      await createMutation.mutateAsync(prepend);
+      const exists = prepends.find(p => p.trigger_name === prepend.trigger_name);
+      if (!exists) {
+        await createMutation.mutateAsync(prepend);
+      }
     }
   };
 
