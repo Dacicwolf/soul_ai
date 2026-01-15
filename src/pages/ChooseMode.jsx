@@ -9,7 +9,8 @@ const modes = [
   {
     id: 'adult_stresat',
     title: 'Adult stresat',
-    description: 'Presiune la job, responsabilități, burnout',
+    description: 'Când simți că sunt prea multe de dus',
+    details: 'Simți că nu mai ai spațiu să respiri (job, responsabilități, oboseală care se adună)',
     icon: Briefcase,
     gradient: 'from-blue-400 to-indigo-500',
     shadow: 'shadow-indigo-200/50'
@@ -17,7 +18,8 @@ const modes = [
   {
     id: 'parinte',
     title: 'Părinte',
-    description: 'Provocările și bucuriile parentale',
+    description: 'Când ai grijă de toți, dar ți-e greu să mai ai timp pentru tine',
+    details: 'Provocările și bucuriile vieții de părinte (iubirea și oboseala merg împreună)',
     icon: Users,
     gradient: 'from-rose-400 to-pink-500',
     shadow: 'shadow-pink-200/50'
@@ -25,7 +27,8 @@ const modes = [
   {
     id: 'tanar',
     title: 'Tânăr',
-    description: 'Identitate, relații, viitor',
+    description: 'Când încerci să-ți dai seama ce vrei mai departe',
+    details: 'Ai multe întrebări și puține certitudini (Identitate, relații, viitor)',
     icon: Sparkles,
     gradient: 'from-amber-400 to-orange-500',
     shadow: 'shadow-orange-200/50'
@@ -54,7 +57,7 @@ export default function ChooseMode() {
             Cum te simți azi?
           </h1>
           <p className="text-gray-500 text-sm">
-            Alege ce te descrie cel mai bine acum
+            Alege ce se apropie cel mai mult de ce trăiești acum
           </p>
         </motion.div>
 
@@ -73,8 +76,8 @@ export default function ChooseMode() {
                   : 'bg-white/70 backdrop-blur-sm border border-white/50 hover:bg-white hover:shadow-lg'
               }`}
             >
-              <div className="flex items-center gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
+              <div className="flex items-start gap-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
                   selectedMode === mode.id
                     ? 'bg-white/20'
                     : `bg-gradient-to-br ${mode.gradient}`
@@ -84,18 +87,23 @@ export default function ChooseMode() {
                   }`} />
                 </div>
                 <div className="flex-1">
-                  <h3 className={`font-medium text-lg ${
+                  <h3 className={`font-medium text-lg mb-1 ${
                     selectedMode === mode.id ? 'text-white' : 'text-gray-800'
                   }`}>
                     {mode.title}
                   </h3>
-                  <p className={`text-sm ${
-                    selectedMode === mode.id ? 'text-white/80' : 'text-gray-500'
+                  <p className={`text-sm mb-1 ${
+                    selectedMode === mode.id ? 'text-white/90' : 'text-gray-600'
                   }`}>
                     {mode.description}
                   </p>
+                  <p className={`text-xs ${
+                    selectedMode === mode.id ? 'text-white/70' : 'text-gray-500'
+                  }`}>
+                    {mode.details}
+                  </p>
                 </div>
-                <ChevronRight className={`w-5 h-5 transition-transform ${
+                <ChevronRight className={`w-5 h-5 transition-transform flex-shrink-0 mt-1 ${
                   selectedMode === mode.id ? 'text-white translate-x-1' : 'text-gray-300'
                 }`} />
               </div>
