@@ -108,12 +108,11 @@ export default function Chat() {
 
     // Initialize with greeting message (uiOnly, not sent to LLM)
     const greetingMessage = { role: 'assistant', content: INITIAL_MESSAGES[mode], uiOnly: true };
-    setMessages([greetingMessage]);
 
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
       
-      // Append real messages after greeting
+      // Always prepend greeting, then append real messages
       setMessages([greetingMessage, ...filteredMessages]);
     });
 
