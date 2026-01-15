@@ -90,24 +90,24 @@ export default function ChooseMode() {
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className={`font-medium text-base mb-0.5 ${
-                    selectedMode === mode.id ? 'text-white' : 'text-[#333]'
+                    selectedMode === mode.id ? 'text-white' : 'text-[#222]'
                   }`}>
                     {mode.title}
                   </h3>
                   <p className={`text-xs mb-0.5 leading-snug ${
-                    selectedMode === mode.id ? 'text-white/90' : 'text-[#333]/80'
+                    selectedMode === mode.id ? 'text-white/90' : 'text-[#222]/80'
                   }`}>
                     {mode.description}
                   </p>
                   <p className={`text-xs leading-snug ${
-                    selectedMode === mode.id ? 'text-white/70' : 'text-[#333]/60'
+                    selectedMode === mode.id ? 'text-white/70' : 'text-[#222]/60'
                   }`}>
                     {mode.details}
                   </p>
-                </div>
-                <ChevronRight className={`w-4 h-4 transition-transform flex-shrink-0 mt-1 ${
-                  selectedMode === mode.id ? 'text-white translate-x-1' : 'text-[#333]/40'
-                }`} />
+                  </div>
+                  <ChevronRight className={`w-4 h-4 transition-transform flex-shrink-0 mt-1 ${
+                  selectedMode === mode.id ? 'text-white translate-x-1' : 'text-[#222]/40'
+                  }`} />
               </div>
             </motion.button>
           ))}
