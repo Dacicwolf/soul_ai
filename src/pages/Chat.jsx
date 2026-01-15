@@ -215,7 +215,7 @@ export default function Chat() {
     if (!inputValue.trim() || isLoading) return;
     
     // Wait for conversation to be ready
-    if (!conversation || !conversationId) {
+    if (!conversation) {
       console.log('Waiting for conversation to initialize...');
       return;
     }
