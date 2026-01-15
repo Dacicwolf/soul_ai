@@ -108,22 +108,13 @@ export default function Chat() {
 
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
-      
-      // Dacă nu există mesaje (doar system prompt), adaugă mesajul de întâmpinare UI-only
-      if (filteredMessages.length === 0) {
-        setMessages([{
-          role: 'assistant',
-          content: INITIAL_MESSAGES[mode]
-        }]);
-      } else {
-        setMessages(filteredMessages);
-      }
+      setMessages(filteredMessages);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [conversationId, mode]);
+  }, [conversationId]);
 
   const initConversation = async () => {
     try {
@@ -135,17 +126,26 @@ export default function Chat() {
         }
       });
       
-      // Set conversation pentru a permite trimiterea de mesaje
+      // Set conversation for sending messages
       setConversation(newConversation);
       
-      // Trimite O SINGURĂ DATĂ prompturile system (GLOBAL + ROL)
+      // Send system prompt
       const systemPrompt = getSystemPrompt();
       await base44.agents.addMessage(newConversation, {
         role: 'system',
         content: systemPrompt
       });
       
-      // Activează subscription-ul (va afișa automat mesajul de întâmpinare)
+      // Add initial AI greeting
+      await base44.agents.addMessage(newConversation, {
+        role: 'assistant',
+        content: INITIAL_MESSAGES[mode]
+      });
+      
+      // Wait for messages to be saved
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Now activate subscription
       setConversationId(newConversation.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
@@ -214,6 +214,7 @@ export default function Chat() {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
     
+    // Wait for conversation to be ready
     if (!conversation) {
       console.log('Waiting for conversation to initialize...');
       return;
@@ -252,15 +253,18 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-        // Verifică local dacă există prepend
+        // 🔒 CONVERSATION LOGIC LOCKED
+        // Nu modifica tone, empatie sau reguli fără QA complet.
+        // Această logică este stabilă și validată.
+        // Detect if message matches a prepend trigger
         const prependPrompt = detectPrependTrigger(userMessage);
 
-        // Construiește mesajul conform logicii canonice
+        // Prepare message - if prepend exists, add it but mark the original message
         const messageToSend = prependPrompt 
-          ? `INSTRUCȚIUNE CU PRIORITATE MARE:\n${prependPrompt}\n\nMESAJ UTILIZATOR:\n${userMessage}`
+          ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
           : userMessage;
 
-        // Trimite UN SINGUR mesaj [user]
+        // Send user message (with prepend if needed)
         await base44.agents.addMessage(conversation, {
           role: 'user',
           content: messageToSend
@@ -346,10 +350,10 @@ export default function Chat() {
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
             {messages.filter(msg => msg.role !== 'system').map((msg, index) => {
-              // Extrage mesajul original user dacă există prepend
+              // Extract original user message if prepend was used
               let displayContent = msg.content;
-              if (msg.role === 'user' && msg.content.includes('MESAJ UTILIZATOR:')) {
-                displayContent = msg.content.split('MESAJ UTILIZATOR:\n')[1].trim();
+              if (msg.role === 'user' && msg.content.includes('---\nMesaj utilizator:')) {
+                displayContent = msg.content.split('---\nMesaj utilizator:')[1].trim();
               }
 
               return (
