@@ -173,16 +173,26 @@ export default function PrependManagement() {
           <p className="text-gray-500">Configurează trigger-ele și prepend prompturile pentru răspunsuri contextualizate</p>
         </motion.div>
 
-        {prepends.length === 0 && (
-          <Card className="mb-6">
-            <CardContent className="pt-6">
-              <p className="text-gray-600 mb-4">Nu există prepend-uri configurate. Vrei să inițializezi cu valorile default?</p>
-              <Button onClick={handleInitializeDefaults} className="bg-indigo-600 hover:bg-indigo-700">
-                Inițializează Prepend-uri Default
-              </Button>
-            </CardContent>
-          </Card>
-        )}
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            {prepends.length === 0 ? (
+              <>
+                <p className="text-gray-600 mb-4">Nu există prepend-uri configurate. Vrei să inițializezi cu valorile default?</p>
+                <Button onClick={handleInitializeDefaults} className="bg-indigo-600 hover:bg-indigo-700">
+                  Inițializează Prepend-uri Default
+                </Button>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-600 mb-4">Reinițializează cu prepend-urile default (inclusiv CONFIRMARE_SCURTA)</p>
+                <Button onClick={handleInitializeDefaults} className="bg-indigo-600 hover:bg-indigo-700">
+                  Adaugă Prepend-uri Default
+                </Button>
+              </>
+            )}
+          </CardContent>
+        </Card>
+        
 
         <div className="space-y-4">
           {prepends.map((prepend) => (
