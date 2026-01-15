@@ -126,9 +126,8 @@ export default function Chat() {
         }
       });
       
-      // Set conversation and ID immediately
+      // Set conversation for sending messages
       setConversation(newConversation);
-      setConversationId(newConversation.id);
       
       // Send system prompt
       const systemPrompt = getSystemPrompt();
@@ -142,6 +141,9 @@ export default function Chat() {
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
       });
+      
+      // Start subscription AFTER messages are added
+      setConversationId(newConversation.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
