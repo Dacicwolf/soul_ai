@@ -106,27 +106,21 @@ export default function Chat() {
   useEffect(() => {
     if (!conversationId) return;
 
-    // Initialize with greeting message (uiOnly, not sent to LLM)
-    const greetingMessage = { role: 'assistant', content: INITIAL_MESSAGES[mode], uiOnly: true };
-    
-    // Set greeting immediately
-    setMessages([greetingMessage]);
-
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
-      
-      // Always prepend greeting, then append real messages
-      setMessages([greetingMessage, ...filteredMessages]);
+      setMessages(filteredMessages);
     });
 
     return () => {
       unsubscribe();
     };
-  }, [conversationId, mode]);
+  }, [conversationId]);
 
   const initConversation = async () => {
     try {
-      // 1. Create conversation
+      // Show initial message immediately
+      setMessages([{ role: 'assistant', content: INITIAL_MESSAGES[mode] }]);
+      
       const newConversation = await base44.agents.createConversation({
         agent_name: 'companion',
         metadata: {
@@ -135,17 +129,22 @@ export default function Chat() {
         }
       });
       
+      // Set conversation first so it's available for sending messages
       setConversation(newConversation);
+      setConversationId(newConversation.id);
       
-      // 2. Send system prompts ONCE (global + role)
+      // Send system prompt
       const systemPrompt = getSystemPrompt();
       await base44.agents.addMessage(newConversation, {
         role: 'system',
         content: systemPrompt
       });
       
-      // 3. Activate subscription (greeting will be shown by useEffect when no messages)
-      setConversationId(newConversation.id);
+      // Add initial AI greeting
+      await base44.agents.addMessage(newConversation, {
+        role: 'assistant',
+        content: INITIAL_MESSAGES[mode]
+      });
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
@@ -213,11 +212,11 @@ export default function Chat() {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
     
-    if (!conversation) {
+    // Wait for conversation to be ready
+    if (!conversation || !conversationId) {
       console.log('Waiting for conversation to initialize...');
       return;
     }
-    
     if (safetyLockCount > 0) {
       setSafetyLockCount(prev => prev - 1);
       return;
@@ -252,25 +251,28 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-      // Detect prepend trigger
-      const prependPrompt = detectPrependTrigger(userMessage);
+        // 🔒 CONVERSATION LOGIC LOCKED
+        // Nu modifica tone, empatie sau reguli fără QA complet.
+        // Această logică este stabilă și validată.
+        // Detect if message matches a prepend trigger
+        const prependPrompt = detectPrependTrigger(userMessage);
 
-      // Prepare message with prepend if needed
-      const messageToSend = prependPrompt 
-        ? `INSTRUCȚIUNE CU PRIORITATE MARE:\n${prependPrompt}\n\nMESAJ UTILIZATOR:\n${userMessage}`
-        : userMessage;
+        // Prepare message - if prepend exists, add it but mark the original message
+        const messageToSend = prependPrompt 
+          ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
+          : userMessage;
 
-      // Send to LLM
-      await base44.agents.addMessage(conversation, {
-        role: 'user',
-        content: messageToSend
-      });
+        // Send user message (with prepend if needed)
+        await base44.agents.addMessage(conversation, {
+          role: 'user',
+          content: messageToSend
+        });
 
-      setIsLoading(false);
-    } catch (error) {
-      console.error('Error sending message:', error);
-      setIsLoading(false);
-    }
+        setIsLoading(false);
+      } catch (error) {
+        console.error('Error sending message:', error);
+        setIsLoading(false);
+      }
   };
 
   const handleUnlockPremium = () => {
@@ -345,11 +347,11 @@ export default function Chat() {
       {/* Messages area */}
       <div className="flex-1 overflow-y-auto px-4 py-6">
         <div className="max-w-2xl mx-auto space-y-4">
-            {messages.map((msg, index) => {
+            {messages.filter(msg => msg.role !== 'system').map((msg, index) => {
               // Extract original user message if prepend was used
               let displayContent = msg.content;
-              if (msg.role === 'user' && msg.content.includes('MESAJ UTILIZATOR:')) {
-                displayContent = msg.content.split('MESAJ UTILIZATOR:\n')[1];
+              if (msg.role === 'user' && msg.content.includes('---\nMesaj utilizator:')) {
+                displayContent = msg.content.split('---\nMesaj utilizator:')[1].trim();
               }
 
               return (
