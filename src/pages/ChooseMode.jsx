@@ -12,8 +12,9 @@ const modes = [
     description: 'Când simți că sunt prea multe de dus',
     details: 'Simți că nu mai ai spațiu să respiri (job, responsabilități, oboseală care se adună)',
     icon: Briefcase,
-    gradient: 'from-blue-400 to-indigo-500',
-    shadow: 'shadow-indigo-200/50'
+    bgNormal: '#DCE7FF',
+    bgSelected: '#5B7CFA',
+    iconBg: '#5B7CFA'
   },
   {
     id: 'parinte',
@@ -21,8 +22,9 @@ const modes = [
     description: 'Când ai grijă de toți, dar ți-e greu să mai ai timp pentru tine',
     details: 'Provocările și bucuriile vieții de părinte (iubirea și oboseala merg împreună)',
     icon: Users,
-    gradient: 'from-rose-400 to-pink-500',
-    shadow: 'shadow-pink-200/50'
+    bgNormal: '#EBDDFF',
+    bgSelected: '#8E5CF6',
+    iconBg: '#8E5CF6'
   },
   {
     id: 'tanar',
@@ -30,8 +32,9 @@ const modes = [
     description: 'Când încerci să-ți dai seama ce vrei mai departe',
     details: 'Ai multe întrebări și puține certitudini (Identitate, relații, viitor)',
     icon: Sparkles,
-    gradient: 'from-amber-400 to-orange-500',
-    shadow: 'shadow-orange-200/50'
+    bgNormal: '#FFE6C7',
+    bgSelected: '#FF8C42',
+    iconBg: '#FF8C42'
   }
 ];
 
@@ -70,41 +73,40 @@ export default function ChooseMode() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 + 0.2 }}
               onClick={() => setSelectedMode(mode.id)}
-              className={`w-full p-3 rounded-2xl text-left transition-all duration-300 ${
-                selectedMode === mode.id
-                  ? `bg-gradient-to-r ${mode.gradient} text-white shadow-xl ${mode.shadow}`
-                  : 'bg-white/70 backdrop-blur-sm border border-white/50 hover:bg-white hover:shadow-lg'
+              style={{
+                backgroundColor: selectedMode === mode.id ? mode.bgSelected : mode.bgNormal,
+                borderColor: selectedMode === mode.id ? mode.bgSelected : 'transparent'
+              }}
+              className={`w-full p-3 rounded-2xl text-left transition-all duration-200 border hover:brightness-105 ${
+                selectedMode === mode.id ? 'shadow-lg' : 'shadow-sm'
               }`}
             >
               <div className="flex items-start gap-3">
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                  selectedMode === mode.id
-                    ? 'bg-white/20'
-                    : `bg-gradient-to-br ${mode.gradient}`
-                }`}>
-                  <mode.icon className={`w-5 h-5 ${
-                    selectedMode === mode.id ? 'text-white' : 'text-white'
-                  }`} />
+                <div 
+                  style={{ backgroundColor: selectedMode === mode.id ? 'rgba(255,255,255,0.2)' : mode.iconBg }}
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                >
+                  <mode.icon className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <h3 className={`font-medium text-base mb-0.5 ${
-                    selectedMode === mode.id ? 'text-white' : 'text-gray-800'
+                    selectedMode === mode.id ? 'text-white' : 'text-[#333]'
                   }`}>
                     {mode.title}
                   </h3>
                   <p className={`text-xs mb-0.5 leading-snug ${
-                    selectedMode === mode.id ? 'text-white/90' : 'text-gray-600'
+                    selectedMode === mode.id ? 'text-white/90' : 'text-[#333]/80'
                   }`}>
                     {mode.description}
                   </p>
                   <p className={`text-xs leading-snug ${
-                    selectedMode === mode.id ? 'text-white/70' : 'text-gray-500'
+                    selectedMode === mode.id ? 'text-white/70' : 'text-[#333]/60'
                   }`}>
                     {mode.details}
                   </p>
                 </div>
                 <ChevronRight className={`w-4 h-4 transition-transform flex-shrink-0 mt-1 ${
-                  selectedMode === mode.id ? 'text-white translate-x-1' : 'text-gray-300'
+                  selectedMode === mode.id ? 'text-white translate-x-1' : 'text-[#333]/40'
                 }`} />
               </div>
             </motion.button>
