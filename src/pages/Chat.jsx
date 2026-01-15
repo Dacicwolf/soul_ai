@@ -118,6 +118,9 @@ export default function Chat() {
 
   const initConversation = async () => {
     try {
+      // Show initial message immediately
+      setMessages([{ role: 'assistant', content: INITIAL_MESSAGES[mode] }]);
+      
       const newConversation = await base44.agents.createConversation({
         agent_name: 'companion',
         metadata: {
@@ -126,10 +129,6 @@ export default function Chat() {
         }
       });
       
-      // Set conversation first so subscription can start
-      setConversation(newConversation);
-      setConversationId(newConversation.id);
-      
       // Send system prompt
       const systemPrompt = getSystemPrompt();
       await base44.agents.addMessage(newConversation, {
@@ -137,11 +136,15 @@ export default function Chat() {
         content: systemPrompt
       });
       
-      // Add initial AI greeting - subscription will update messages
+      // Add initial AI greeting
       await base44.agents.addMessage(newConversation, {
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
       });
+      
+      // Set conversation AFTER messages are added to avoid race condition
+      setConversation(newConversation);
+      setConversationId(newConversation.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
