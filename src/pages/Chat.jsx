@@ -171,9 +171,14 @@ export default function Chat() {
 
     const normalizedText = normalize(text);
     
-    // 1️⃣ Check ALL triggers with keywords (including TACERE)
+    // 1️⃣ Check ALL triggers with keywords
     for (const trigger of prependPrompts) {
-      if (trigger.keywords.some(keyword => normalizedText.includes(normalize(keyword)))) {
+      if (trigger.keywords.some(keyword => {
+        const normalizedKeyword = normalize(keyword);
+        // Skip empty keywords after normalization (like '...')
+        if (!normalizedKeyword) return false;
+        return normalizedText.includes(normalizedKeyword);
+      })) {
         return trigger.prompt;
       }
     }
