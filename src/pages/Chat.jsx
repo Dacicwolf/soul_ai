@@ -209,7 +209,6 @@ export default function Chat() {
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
     
-    // Wait for conversation to be ready
     if (!conversation) {
       console.log('Waiting for conversation to initialize...');
       return;
@@ -248,18 +247,15 @@ export default function Chat() {
     setIsLoading(true);
 
     try {
-        // 🔒 CONVERSATION LOGIC LOCKED
-        // Nu modifica tone, empatie sau reguli fără QA complet.
-        // Această logică este stabilă și validată.
-        // Detect if message matches a prepend trigger
+        // Verifică local dacă există prepend
         const prependPrompt = detectPrependTrigger(userMessage);
 
-        // Prepare message - if prepend exists, add it but mark the original message
+        // Construiește mesajul conform logicii canonice
         const messageToSend = prependPrompt 
-          ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
+          ? `INSTRUCȚIUNE CU PRIORITATE MARE:\n${prependPrompt}\n\nMESAJ UTILIZATOR:\n${userMessage}`
           : userMessage;
 
-        // Send user message (with prepend if needed)
+        // Trimite UN SINGUR mesaj [user]
         await base44.agents.addMessage(conversation, {
           role: 'user',
           content: messageToSend
