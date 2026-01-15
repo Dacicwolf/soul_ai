@@ -70,40 +70,40 @@ export default function ChooseMode() {
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: index * 0.1 + 0.2 }}
               onClick={() => setSelectedMode(mode.id)}
-              className={`w-full p-5 rounded-2xl text-left transition-all duration-300 ${
+              className={`w-full p-3 rounded-2xl text-left transition-all duration-300 ${
                 selectedMode === mode.id
                   ? `bg-gradient-to-r ${mode.gradient} text-white shadow-xl ${mode.shadow}`
                   : 'bg-white/70 backdrop-blur-sm border border-white/50 hover:bg-white hover:shadow-lg'
               }`}
             >
-              <div className="flex items-start gap-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              <div className="flex items-start gap-3">
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                   selectedMode === mode.id
                     ? 'bg-white/20'
                     : `bg-gradient-to-br ${mode.gradient}`
                 }`}>
-                  <mode.icon className={`w-6 h-6 ${
+                  <mode.icon className={`w-5 h-5 ${
                     selectedMode === mode.id ? 'text-white' : 'text-white'
                   }`} />
                 </div>
-                <div className="flex-1">
-                  <h3 className={`font-medium text-lg mb-1 ${
+                <div className="flex-1 min-w-0">
+                  <h3 className={`font-medium text-base mb-0.5 ${
                     selectedMode === mode.id ? 'text-white' : 'text-gray-800'
                   }`}>
                     {mode.title}
                   </h3>
-                  <p className={`text-sm mb-1 ${
+                  <p className={`text-xs mb-0.5 leading-snug ${
                     selectedMode === mode.id ? 'text-white/90' : 'text-gray-600'
                   }`}>
                     {mode.description}
                   </p>
-                  <p className={`text-xs ${
+                  <p className={`text-xs leading-snug ${
                     selectedMode === mode.id ? 'text-white/70' : 'text-gray-500'
                   }`}>
                     {mode.details}
                   </p>
                 </div>
-                <ChevronRight className={`w-5 h-5 transition-transform flex-shrink-0 mt-1 ${
+                <ChevronRight className={`w-4 h-4 transition-transform flex-shrink-0 mt-1 ${
                   selectedMode === mode.id ? 'text-white translate-x-1' : 'text-gray-300'
                 }`} />
               </div>
