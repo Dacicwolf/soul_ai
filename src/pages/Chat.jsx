@@ -128,7 +128,6 @@ export default function Chat() {
       
       // Set conversation pentru a permite trimiterea de mesaje
       setConversation(newConversation);
-      setConversationId(newConversation.id);
       
       // Trimite O SINGURĂ DATĂ prompturile system (GLOBAL + ROL)
       const systemPrompt = getSystemPrompt();
@@ -137,11 +136,15 @@ export default function Chat() {
         content: systemPrompt
       });
       
-      // Mesajul de întâmpinare este DOAR UI - îl setăm manual
+      // Mesajul de întâmpinare este DOAR UI - îl setăm manual ÎNAINTE de subscription
       setMessages([{
         role: 'assistant',
         content: INITIAL_MESSAGES[mode]
       }]);
+      
+      // Activăm subscription-ul ULTIMUL (după un delay mic)
+      await new Promise(resolve => setTimeout(resolve, 100));
+      setConversationId(newConversation.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
     }
