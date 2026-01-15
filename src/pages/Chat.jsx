@@ -106,13 +106,13 @@ export default function Chat() {
   useEffect(() => {
     if (!conversationId) return;
 
+    // Show greeting immediately
+    setMessages([{ role: 'assistant', content: INITIAL_MESSAGES[mode] }]);
+
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
       
-      // Show greeting in UI if no messages yet
-      if (filteredMessages.length === 0) {
-        setMessages([{ role: 'assistant', content: INITIAL_MESSAGES[mode] }]);
-      } else {
+      if (filteredMessages.length > 0) {
         setMessages(filteredMessages);
       }
     });
