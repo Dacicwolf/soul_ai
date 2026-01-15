@@ -106,15 +106,15 @@ export default function Chat() {
   useEffect(() => {
     if (!conversationId) return;
 
-    // Show greeting immediately
-    setMessages([{ role: 'assistant', content: INITIAL_MESSAGES[mode] }]);
+    // Initialize with greeting message (uiOnly, not sent to LLM)
+    const greetingMessage = { role: 'assistant', content: INITIAL_MESSAGES[mode], uiOnly: true };
+    setMessages([greetingMessage]);
 
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
       
-      if (filteredMessages.length > 0) {
-        setMessages(filteredMessages);
-      }
+      // Append real messages after greeting
+      setMessages([greetingMessage, ...filteredMessages]);
     });
 
     return () => {
