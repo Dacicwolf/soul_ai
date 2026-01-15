@@ -108,7 +108,10 @@ export default function Chat() {
 
     const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
       const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
-      setMessages(filteredMessages);
+      setMessages(prevMessages => {
+        const uiOnlyMessages = prevMessages.filter(m => m.uiOnly);
+        return [...uiOnlyMessages, ...filteredMessages];
+      });
     });
 
     return () => {
@@ -119,7 +122,11 @@ export default function Chat() {
   const initConversation = async () => {
     try {
       // Show initial message immediately
-      setMessages([{ role: 'assistant', content: INITIAL_MESSAGES[mode] }]);
+      setMessages([{
+        role: 'assistant',
+        content: INITIAL_MESSAGES[mode],
+        uiOnly: true
+      }]);
       
       const newConversation = await base44.agents.createConversation({
         agent_name: 'companion',
