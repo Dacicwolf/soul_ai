@@ -129,6 +129,9 @@ export default function Chat() {
         }
       });
       
+      // Set conversation first so it's available for sending messages
+      setConversation(newConversation);
+      
       // Send system prompt
       const systemPrompt = getSystemPrompt();
       await base44.agents.addMessage(newConversation, {
@@ -142,8 +145,7 @@ export default function Chat() {
         content: INITIAL_MESSAGES[mode]
       });
       
-      // Set conversation AFTER messages are added to avoid race condition
-      setConversation(newConversation);
+      // Set conversationId AFTER messages to start subscription with complete data
       setConversationId(newConversation.id);
     } catch (error) {
       console.error('Error creating conversation:', error);
