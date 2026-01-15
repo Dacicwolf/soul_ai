@@ -10,6 +10,16 @@ import { motion } from 'framer-motion';
 
 const DEFAULT_PREPENDS = [
   {
+    trigger_name: 'CONFIRMARE_SCURTA',
+    keywords: ['da', 'ok', 'bine', 'înțeleg'],
+    prompt: `UTILIZATORUL DĂ O CONFIRMARE SCURTĂ.
+Răspunde calm, fără asumpții.
+Pune o singură întrebare de clarificare.
+Folosește EXACT:
+„Ce te face să spui asta acum?"`,
+    is_active: true
+  },
+  {
     trigger_name: 'RESPINGERE',
     keywords: ['nu cred că ajută asta', 'nu are sens', 'nu funcționează'],
     prompt: `UTILIZATORUL EXPRIMĂ RESPINGERE SAU NEÎNCREDERE.
