@@ -273,20 +273,13 @@ export default function Chat() {
       return;
     }
 
-    // Verifică credite (admins au nelimitat)
-    const totalRemaining = (FREE_MESSAGES - freeMessagesUsed) + paidMessagesRemaining;
-    if (!isAdmin && totalRemaining <= 0) {
+    // Hard paywall: blochează când nu mai ai niciun mesaj
+    if (!isAdmin && freeMessagesUsed >= FREE_MESSAGES && paidMessagesRemaining === 0) {
       setShowPaywall(true);
       return;
     }
 
-    // Arată soft paywall la mesajul 8
-    const newCount = messageCount + 1;
-    if (!isAdmin && newCount === SOFT_PAYWALL_TRIGGER && totalRemaining <= 2) {
-      setShowPaywall(true);
-    }
-
-    setMessageCount(newCount);
+    setMessageCount(messageCount + 1);
     setIsLoading(true);
 
     try {
@@ -309,19 +302,24 @@ export default function Chat() {
 
         // Scade un mesaj (doar dacă nu e admin)
         if (!isAdmin) {
-          // Mai întâi folosește mesajele plătite
-          if (paidMessagesRemaining > 0) {
-            const newPaid = paidMessagesRemaining - 1;
-            setPaidMessagesRemaining(newPaid);
-            await base44.auth.updateMe({ 
-              paidMessagesRemaining: newPaid 
-            });
-          } else if (freeMessagesUsed < FREE_MESSAGES) {
-            // Apoi folosește mesajele gratuite
+          // Mai întâi folosește mesajele gratuite
+          if (freeMessagesUsed < FREE_MESSAGES) {
             const newFree = freeMessagesUsed + 1;
             setFreeMessagesUsed(newFree);
             await base44.auth.updateMe({ 
               freeMessagesUsed: newFree 
+            });
+
+            // Soft paywall după mesajul 8
+            if (newFree === SOFT_PAYWALL_TRIGGER && paidMessagesRemaining === 0) {
+              setShowPaywall(true);
+            }
+          } else if (paidMessagesRemaining > 0) {
+            // Apoi folosește mesajele plătite
+            const newPaid = paidMessagesRemaining - 1;
+            setPaidMessagesRemaining(newPaid);
+            await base44.auth.updateMe({ 
+              paidMessagesRemaining: newPaid 
             });
           }
         }
