@@ -86,6 +86,12 @@ export default function Chat() {
   }, [messages, showSafetyResponse]);
 
   useEffect(() => {
+    if (!isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant') {
+      inputRef.current?.focus();
+    }
+  }, [isLoading, messages]);
+
+  useEffect(() => {
     checkAuthAndInit();
   }, []);
 
