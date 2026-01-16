@@ -404,9 +404,9 @@ export default function Chat() {
               </div>
             )}
             <button 
-              onClick={() => {
-                window.location.href = '/';
-                base44.auth.logout();
+              onClick={async () => {
+                await base44.auth.logout();
+                window.location.href = createPageUrl('Home');
               }}
               className="flex flex-col items-center gap-1 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors"
             >
