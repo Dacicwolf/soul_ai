@@ -261,7 +261,7 @@ export default function Chat() {
 
     const userMessage = inputValue.trim();
     setInputValue('');
-    
+
     // Check for safety keywords
     if (checkSafetyKeywords(userMessage)) {
       setShowSafetyResponse(true);
@@ -273,62 +273,81 @@ export default function Chat() {
       return;
     }
 
-    // Hard paywall: blochează când nu mai ai niciun mesaj
-    if (!isAdmin && freeMessagesUsed >= FREE_MESSAGES && paidMessagesRemaining === 0) {
-      setShowPaywall(true);
+    // === PSEUDOCOD EXACT ===
+    // if (user.role === 'admin') → allowMessage()
+    if (isAdmin) {
+      // Admin → trimite mesaj direct
+      setMessageCount(messageCount + 1);
+      setIsLoading(true);
+
+      const prependPrompt = detectPrependTrigger(userMessage);
+      const messageToSend = prependPrompt 
+        ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
+        : userMessage;
+
+      await base44.agents.addMessage(conversation, {
+        role: 'user',
+        content: messageToSend
+      });
+
+      setIsLoading(false);
       return;
     }
 
-    setMessageCount(messageCount + 1);
-    setIsLoading(true);
+    // if (user.freeMessagesUsed < 10) → incrementează, soft paywall la 8
+    if (freeMessagesUsed < FREE_MESSAGES) {
+      const newFree = freeMessagesUsed + 1;
+      setFreeMessagesUsed(newFree);
+      await base44.auth.updateMe({ freeMessagesUsed: newFree });
 
-    try {
-        // 🔒 CONVERSATION LOGIC LOCKED
-        // Nu modifica tone, empatie sau reguli fără QA complet.
-        // Această logică este stabilă și validată.
-        // Detect if message matches a prepend trigger
-        const prependPrompt = detectPrependTrigger(userMessage);
+      if (newFree === SOFT_PAYWALL_TRIGGER) {
+        setShowPaywall(true);
+      }
 
-        // Prepare message - if prepend exists, add it but mark the original message
-        const messageToSend = prependPrompt 
-          ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
-          : userMessage;
+      // Permite mesaj
+      setMessageCount(messageCount + 1);
+      setIsLoading(true);
 
-        // Send user message (with prepend if needed)
-        await base44.agents.addMessage(conversation, {
-          role: 'user',
-          content: messageToSend
-        });
+      const prependPrompt = detectPrependTrigger(userMessage);
+      const messageToSend = prependPrompt 
+        ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
+        : userMessage;
 
-        // Scade un mesaj (doar dacă nu e admin)
-        if (!isAdmin) {
-          // Mai întâi folosește mesajele gratuite
-          if (freeMessagesUsed < FREE_MESSAGES) {
-            const newFree = freeMessagesUsed + 1;
-            setFreeMessagesUsed(newFree);
-            await base44.auth.updateMe({ 
-              freeMessagesUsed: newFree 
-            });
+      await base44.agents.addMessage(conversation, {
+        role: 'user',
+        content: messageToSend
+      });
 
-            // Soft paywall după mesajul 8
-            if (newFree === SOFT_PAYWALL_TRIGGER && paidMessagesRemaining === 0) {
-              setShowPaywall(true);
-            }
-          } else if (paidMessagesRemaining > 0) {
-            // Apoi folosește mesajele plătite
-            const newPaid = paidMessagesRemaining - 1;
-            setPaidMessagesRemaining(newPaid);
-            await base44.auth.updateMe({ 
-              paidMessagesRemaining: newPaid 
-            });
-          }
-        }
+      setIsLoading(false);
+      return;
+    }
 
-        setIsLoading(false);
-        } catch (error) {
-        console.error('Error sending message:', error);
-        setIsLoading(false);
-        }
+    // if (user.paidMessagesRemaining > 0) → decrementează
+    if (paidMessagesRemaining > 0) {
+      const newPaid = paidMessagesRemaining - 1;
+      setPaidMessagesRemaining(newPaid);
+      await base44.auth.updateMe({ paidMessagesRemaining: newPaid });
+
+      // Permite mesaj
+      setMessageCount(messageCount + 1);
+      setIsLoading(true);
+
+      const prependPrompt = detectPrependTrigger(userMessage);
+      const messageToSend = prependPrompt 
+        ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
+        : userMessage;
+
+      await base44.agents.addMessage(conversation, {
+        role: 'user',
+        content: messageToSend
+      });
+
+      setIsLoading(false);
+      return;
+    }
+
+    // Hard paywall → blochează mesaj
+    setShowPaywall(true);
         };
 
   const handlePurchaseComplete = (addedMessages) => {
