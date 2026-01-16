@@ -24,8 +24,9 @@ const SAFETY_KEYWORDS = [
 
 
 
-const MAX_MESSAGES = 10;
-const PAYWALL_TRIGGER = 8;
+const FREE_MESSAGES = 10;
+const SOFT_PAYWALL_TRIGGER = 8;
+const HARD_PAYWALL_TRIGGER = 10;
 
 const MODE_LABELS = {
   adult_stresat: 'Adult stresat',
@@ -52,7 +53,9 @@ export default function Chat() {
   const [showSafetyResponse, setShowSafetyResponse] = useState(false);
   const [safetyLockCount, setSafetyLockCount] = useState(0);
   const [showPaywall, setShowPaywall] = useState(false);
-  const [hasPremium, setHasPremium] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [messageCredits, setMessageCredits] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -102,6 +105,21 @@ export default function Chat() {
         base44.auth.redirectToLogin(window.location.href);
         return;
       }
+      
+      // Încarcă datele utilizatorului
+      const user = await base44.auth.me();
+      setCurrentUser(user);
+      setIsAdmin(user.role === 'admin');
+      
+      // Setează credite - dacă nu există, setează 10 gratuite
+      const credits = user.message_credits !== undefined ? user.message_credits : FREE_MESSAGES;
+      setMessageCredits(credits);
+      
+      // Dacă utilizatorul nou, setează creditele inițiale
+      if (user.message_credits === undefined) {
+        await base44.auth.updateMe({ message_credits: FREE_MESSAGES });
+      }
+      
       initConversation();
     } catch (error) {
       console.error('Auth check failed:', error);
@@ -249,15 +267,16 @@ export default function Chat() {
       return;
     }
 
-    // Check message limit
-    const newCount = messageCount + 1;
-    if (!hasPremium && newCount >= PAYWALL_TRIGGER) {
-      setShowPaywall(true);
-    }
-
-    if (!hasPremium && messageCount >= MAX_MESSAGES) {
+    // Verifică credite (admins au nelimitat)
+    if (!isAdmin && messageCredits <= 0) {
       setShowPaywall(true);
       return;
+    }
+
+    // Arată soft paywall la mesajul 8
+    const newCount = messageCount + 1;
+    if (!isAdmin && newCount === SOFT_PAYWALL_TRIGGER && messageCredits <= 2) {
+      setShowPaywall(true);
     }
 
     setMessageCount(newCount);
@@ -281,15 +300,24 @@ export default function Chat() {
           content: messageToSend
         });
 
+        // Scade un credit (doar dacă nu e admin)
+        if (!isAdmin) {
+          const newCredits = messageCredits - 1;
+          setMessageCredits(newCredits);
+          await base44.auth.updateMe({ 
+            message_credits: newCredits 
+          });
+        }
+
         setIsLoading(false);
-      } catch (error) {
+        } catch (error) {
         console.error('Error sending message:', error);
         setIsLoading(false);
-      }
-  };
+        }
+        };
 
-  const handleUnlockPremium = () => {
-    setHasPremium(true);
+  const handlePurchaseComplete = (newCredits) => {
+    setMessageCredits(newCredits);
     setShowPaywall(false);
   };
 
@@ -300,7 +328,7 @@ export default function Chat() {
     }
   };
 
-  const remainingMessages = Math.max(0, MAX_MESSAGES - messageCount);
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-rose-50 flex flex-col">
@@ -325,25 +353,19 @@ export default function Chat() {
           
           {/* Message counter */}
           <div className="flex items-center gap-3">
-            {!hasPremium && (
+            {!isAdmin && (
               <div className="flex items-center gap-2">
                 <div className="text-sm font-medium text-gray-600">
-                  <span className={messageCount >= PAYWALL_TRIGGER ? 'text-amber-500' : 'text-indigo-500'}>
-                    {messageCount}
+                  <span className={messageCredits <= 2 ? 'text-amber-500' : 'text-indigo-500'}>
+                    {messageCredits}
                   </span>
-                  <span className="text-gray-400">/{MAX_MESSAGES}</span>
+                  <span className="text-gray-400 text-xs ml-1">mesaje</span>
                 </div>
-                <div className="w-12 h-1.5 bg-gray-200 rounded-full overflow-hidden">
-                  <motion.div
-                    initial={{ width: 0 }}
-                    animate={{ width: `${(messageCount / MAX_MESSAGES) * 100}%` }}
-                    className={`h-full rounded-full ${
-                      messageCount >= PAYWALL_TRIGGER 
-                        ? 'bg-gradient-to-r from-amber-400 to-orange-500' 
-                        : 'bg-gradient-to-r from-indigo-400 to-purple-500'
-                    }`}
-                  />
-                </div>
+              </div>
+            )}
+            {isAdmin && (
+              <div className="text-xs text-indigo-600 font-medium">
+                Admin • Nelimitat
               </div>
             )}
             <button 
@@ -405,26 +427,26 @@ export default function Chat() {
                 onChange={(e) => setInputValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder={safetyLockCount > 0 ? "Ia-ți un moment..." : "Scrie un mesaj..."}
-                disabled={isLoading || (!hasPremium && messageCount >= MAX_MESSAGES) || safetyLockCount > 0}
+                disabled={isLoading || (!isAdmin && messageCredits <= 0) || safetyLockCount > 0}
                 className="w-full py-6 pl-4 pr-12 rounded-2xl border-gray-200 bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
               />
             </div>
             <Button
               onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading || (!hasPremium && messageCount >= MAX_MESSAGES) || safetyLockCount > 0}
+              disabled={!inputValue.trim() || isLoading || (!isAdmin && messageCredits <= 0) || safetyLockCount > 0}
               className="w-12 h-12 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 shadow-lg shadow-purple-200/50 disabled:opacity-50"
             >
               <Send className="w-5 h-5" />
             </Button>
           </div>
-          
-          {!hasPremium && remainingMessages <= 3 && remainingMessages > 0 && (
+
+          {!isAdmin && messageCredits <= 3 && messageCredits > 0 && (
             <motion.p
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               className="text-center text-xs text-amber-600 mt-2"
             >
-              {remainingMessages} mesaje rămase
+              {messageCredits} {messageCredits === 1 ? 'mesaj rămas' : 'mesaje rămase'}
             </motion.p>
           )}
         </div>
@@ -434,9 +456,9 @@ export default function Chat() {
       <PaywallModal
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
-        onUnlock={handleUnlockPremium}
+        onPurchaseComplete={handlePurchaseComplete}
         messagesUsed={messageCount}
-        maxMessages={MAX_MESSAGES}
+        currentCredits={messageCredits}
       />
     </div>
   );
