@@ -404,7 +404,7 @@ export default function Chat() {
               </div>
             )}
             <button 
-              onClick={() => base44.auth.logout(window.location.origin)}
+              onClick={() => base44.auth.logout()}
               className="flex flex-col items-center gap-1 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors"
             >
               <LogOut className="w-5 h-5 text-gray-600" />
