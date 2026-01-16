@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { base44 } from '@/api/base44Client';
 import { toast } from 'sonner';
 
-export default function PaywallModal({ isOpen, onClose, messagesUsed, currentCredits, onPurchaseComplete }) {
+export default function PaywallModal({ isOpen, onClose, messagesUsed, paidRemaining, onPurchaseComplete }) {
   const [isProcessing, setIsProcessing] = useState(false);
 
   const packages = [
@@ -60,16 +60,16 @@ export default function PaywallModal({ isOpen, onClose, messagesUsed, currentCre
       const purchase = await window.googlePlayBilling.purchase(pkg.sku);
       
       if (purchase.success) {
-        // Actualizează creditele utilizatorului
+        // Adaugă mesajele la cele plătite
         const user = await base44.auth.me();
-        const newCredits = (user.message_credits || 0) + pkg.messages;
+        const newPaid = (user.paidMessagesRemaining || 0) + pkg.messages;
         
         await base44.auth.updateMe({
-          message_credits: newCredits
+          paidMessagesRemaining: newPaid
         });
 
-        toast.success(`Ai primit ${pkg.messages} mesaje! Total: ${newCredits} mesaje`);
-        onPurchaseComplete(newCredits);
+        toast.success(`Ai primit ${pkg.messages} mesaje!`);
+        onPurchaseComplete(pkg.messages);
         onClose();
       }
     } catch (error) {
@@ -112,9 +112,9 @@ export default function PaywallModal({ isOpen, onClose, messagesUsed, currentCre
               <p className="text-gray-600 text-sm">
                 Ai folosit {messagesUsed}/10 mesaje gratuite
               </p>
-              {currentCredits > 0 && (
+              {paidRemaining > 0 && (
                 <p className="text-indigo-600 font-medium text-sm mt-1">
-                  Ai {currentCredits} {currentCredits === 1 ? 'mesaj rămas' : 'mesaje rămase'}
+                  + {paidRemaining} {paidRemaining === 1 ? 'mesaj plătit' : 'mesaje plătite'}
                 </p>
               )}
             </div>
