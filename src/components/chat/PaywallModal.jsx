@@ -14,7 +14,7 @@ export default function PaywallModal({ isOpen, onClose, messagesUsed, paidRemain
       name: 'Bronz',
       messages: 20,
       price: 9,
-      priceId: 'price_1SqgJK8nzomumwvYtvzAfcYj',
+      priceId: 'price_1SqgLC8nzomumwvYEdFLuEpC',
       icon: Sparkles,
       iconColor: 'text-amber-600',
       bgGradient: 'from-amber-50 to-orange-50',
