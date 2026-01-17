@@ -27,12 +27,19 @@ Deno.serve(async (req) => {
       const userId = session.metadata.user_id;
       const messages = parseInt(session.metadata.messages);
 
-      // Actualizează mesajele utilizatorului
+      console.log(`Processing payment for user ${userId}, adding ${messages} messages`);
+
+      // Preia utilizatorul curent
+      const user = await base44.asServiceRole.entities.User.get(userId);
+      const currentPaidMessages = user.paidMessagesRemaining || 0;
+      const newTotal = currentPaidMessages + messages;
+
+      // Actualizează mesajele utilizatorului (adaugă la cele existente)
       await base44.asServiceRole.entities.User.update(userId, {
-        paidMessagesRemaining: messages
+        paidMessagesRemaining: newTotal
       });
 
-      console.log(`User ${userId} purchased ${messages} messages`);
+      console.log(`User ${userId} purchased ${messages} messages. Total: ${currentPaidMessages} + ${messages} = ${newTotal}`);
     }
 
     return Response.json({ received: true });
