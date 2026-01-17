@@ -14,68 +14,58 @@ export default function PaywallModal({ isOpen, onClose, messagesUsed, paidRemain
       name: 'Bronz',
       messages: 10,
       price: 9,
+      priceId: 'price_1SqgJF8nzomumwvYveNRWpkq',
       icon: Sparkles,
       iconColor: 'text-amber-600',
       bgGradient: 'from-amber-50 to-orange-50',
-      borderColor: 'border-amber-200',
-      sku: 'bronze_10_messages'
+      borderColor: 'border-amber-200'
     },
     {
       id: 'silver',
       name: 'Silver',
       messages: 50,
       price: 29,
+      priceId: 'price_1SqgJF8nzomumwvYludMth7p',
       icon: Star,
       iconColor: 'text-indigo-600',
       bgGradient: 'from-indigo-50 to-purple-50',
       borderColor: 'border-indigo-300',
-      badge: '⭐ BESTSELLER',
-      sku: 'silver_50_messages'
+      badge: '⭐ BESTSELLER'
     },
     {
       id: 'gold',
       name: 'Gold',
       messages: 100,
       price: 49,
+      priceId: 'price_1SqgJF8nzomumwvY3z4kGCnZ',
       icon: Crown,
       iconColor: 'text-yellow-600',
       bgGradient: 'from-yellow-50 to-amber-50',
-      borderColor: 'border-yellow-300',
-      sku: 'gold_100_messages'
+      borderColor: 'border-yellow-300'
     }
   ];
 
   const handlePurchase = async (pkg) => {
+    // Verifică dacă rulează în iframe
+    if (window.self !== window.top) {
+      toast.error('Pentru a cumpăra, deschide aplicația în fereastră nouă');
+      return;
+    }
+
     setIsProcessing(true);
     
     try {
-      // Verifică dacă Google Play Billing este disponibil
-      if (typeof window.googlePlayBilling === 'undefined') {
-        toast.error('Google Play Billing nu este disponibil');
-        setIsProcessing(false);
-        return;
-      }
+      const { data } = await base44.functions.invoke('createCheckout', {
+        priceId: pkg.priceId,
+        messages: pkg.messages
+      });
 
-      // Inițiază fluxul de plată Google Play
-      const purchase = await window.googlePlayBilling.purchase(pkg.sku);
-      
-      if (purchase.success) {
-        // Adaugă mesajele la cele plătite
-        const user = await base44.auth.me();
-        const newPaid = (user.paidMessagesRemaining || 0) + pkg.messages;
-        
-        await base44.auth.updateMe({
-          paidMessagesRemaining: newPaid
-        });
-
-        toast.success(`Ai primit ${pkg.messages} mesaje!`);
-        onPurchaseComplete(pkg.messages);
-        onClose();
+      if (data.url) {
+        window.location.href = data.url;
       }
     } catch (error) {
       console.error('Eroare la procesarea plății:', error);
       toast.error('Plata nu a putut fi procesată. Te rugăm să încerci din nou.');
-    } finally {
       setIsProcessing(false);
     }
   };
@@ -159,7 +149,7 @@ export default function PaywallModal({ isOpen, onClose, messagesUsed, paidRemain
             </div>
 
             <div className="text-center text-xs text-gray-500">
-              Plata se face prin Google Play
+              Plata securizată prin Stripe
             </div>
 
             {isProcessing && (
