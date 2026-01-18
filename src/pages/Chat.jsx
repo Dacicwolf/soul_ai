@@ -319,6 +319,12 @@ export default function Chat() {
       });
 
       setIsLoading(false);
+
+      // Hard paywall după ultimul mesaj gratuit
+      if (newFree === FREE_MESSAGES && paidMessagesRemaining === 0) {
+        setShowPaywall(true);
+      }
+
       return;
     }
 
@@ -343,6 +349,12 @@ export default function Chat() {
       });
 
       setIsLoading(false);
+
+      // Hard paywall după ultimul mesaj plătit
+      if (newPaid === 0) {
+        setShowPaywall(true);
+      }
+
       return;
     }
 
