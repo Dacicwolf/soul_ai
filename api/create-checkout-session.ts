@@ -21,7 +21,10 @@ export default async function handler(
     }
 
     try {
-        const { pack } = req.body;
+        const body =
+            typeof req.body === "string" ? JSON.parse(req.body) : req.body;
+
+        const { pack } = body;
 
         if (!pack || !PRICE_MAP[pack]) {
             return res.status(400).json({ error: "Invalid pack" });
