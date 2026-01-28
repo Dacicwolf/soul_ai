@@ -4,18 +4,21 @@ import Disclaimer from './pages/Disclaimer';
 import Home from './pages/Home';
 import PrependManagement from './pages/PrependManagement';
 import PromptManagement from './pages/PromptManagement';
-
+import About from '@/pages/About';
+import ConversationSelector from '@/pages/ConversationSelector';
 
 export const PAGES = {
-    "Chat": Chat,
-    "ChooseMode": ChooseMode,
-    "Disclaimer": Disclaimer,
-    "Home": Home,
-    "PrependManagement": PrependManagement,
-    "PromptManagement": PromptManagement,
+    "chat": Chat,
+    "choose-mode": ChooseMode,
+    "conversation-selector": ConversationSelector,
+    "disclaimer": Disclaimer,
+    "home": Home,
+    "about": About,
+    "prepend-management": PrependManagement,
+    "prompt-management": PromptManagement,
 }
 
 export const pagesConfig = {
-    mainPage: "Home",
+    mainPage: "home",
     Pages: PAGES,
 };

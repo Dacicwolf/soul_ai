@@ -1,514 +1,396 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
-import { base44 } from '@/api/base44Client';
-import { useQuery } from '@tanstack/react-query';
-import { Send, ArrowLeft, LogOut } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Link } from 'react-router-dom';
-import { createPageUrl } from '@/utils';
-import ChatBubble from '@/components/chat/ChatBubble';
-import SafetyResponse from '@/components/chat/SafetyResponse';
-import PaywallModal from '@/components/chat/PaywallModal';
+import React, { useState, useEffect, useRef } from "react";
+import { Send, ArrowLeft, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import ChatBubble from "@/components/chat/ChatBubble";
+import PaywallModal from "@/components/chat/PaywallModal";
+import { supabase } from "@/lib/supabaseClient";
+import { saveMessages } from "@/services/messages";
+import { generateAndSaveSummary } from "@/services/summary";
+import { useNavigate } from "react-router-dom";
 
-const SAFETY_KEYWORDS = [
-  'nu mai vreau să trăiesc',
-  'vreau să dispar',
-  'să mă rănesc',
-  'nu mai are rost',
-  'vreau să mor',
-  'mă sinucid',
-  'să mă omor',
-  'vreau să renunț la viață'
-];
-
-
-
-const FREE_MESSAGES = 10;
-const SOFT_PAYWALL_TRIGGER = 8;
-const HARD_PAYWALL_TRIGGER = 10;
+const FREE_MESSAGES = 20; // păstrat pentru inițializare
 
 const MODE_LABELS = {
-  adult_stresat: 'Adult stresat',
-  parinte: 'Părinte',
-  tanar: 'Tânăr'
+  adult_stresat: "Adult stresat",
+  parinte: "Părinte",
+  tanar: "Tânăr",
 };
 
 const INITIAL_MESSAGES = {
-  adult_stresat: 'Bună! Sunt aici să te ascult. Te pot ajuta să-ți clarifici gândurile. Putem vorbi despre ce te apasă acum sau despre o situație concretă.',
-  parinte: 'Bună! Sunt aici să te ascult. Putem vorbi despre ce te apasă acum sau despre o situație din familie care te obosește.',
-  tanar: 'Hey! Sunt aici să te ascult. Putem vorbi despre ce te frământă acum sau despre o situație care te încurcă.'
+  adult_stresat: "Bună! Sunt aici să te ascult.",
+  parinte: "Bună! Sunt aici să te ascult.",
+  tanar: "Hey! Sunt aici să te ascult.",
 };
 
-export default function Chat() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const mode = urlParams.get('mode') || 'adult_stresat';
-  
-  const [messages, setMessages] = useState([]);
-  const [inputValue, setInputValue] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [conversationId, setConversationId] = useState(null);
-  const [conversation, setConversation] = useState(null);
-  const [messageCount, setMessageCount] = useState(0);
-  const [showSafetyResponse, setShowSafetyResponse] = useState(false);
-  const [safetyLockCount, setSafetyLockCount] = useState(0);
-  const [showPaywall, setShowPaywall] = useState(false);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [freeMessagesUsed, setFreeMessagesUsed] = useState(0);
-  const [paidMessagesRemaining, setPaidMessagesRemaining] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false);
-  
-  const messagesEndRef = useRef(null);
-  const inputRef = useRef(null);
+const SYSTEM_PROMPTS = {
+  adult_stresat:
+    "Ești un companion AI empatic pentru un adult stresat. Răspunde calm, clar și fără judecată.",
+  parinte:
+    "Ești un companion AI empatic pentru un părinte. Oferă sprijin, claritate și echilibru.",
+  tanar:
+    "Ești un companion AI empatic pentru un tânăr. Folosește un ton prietenos și accesibil.",
+};
 
-  // Load AI prompts
-  const { data: aiPrompts } = useQuery({
-    queryKey: ['aiPrompts'],
-    queryFn: async () => {
-      const result = await base44.entities.AIPrompts.list();
-      return result.length > 0 ? result[0] : null;
-    },
-    initialData: null,
-  });
+function normalizeText(text) {
+  if (typeof text !== "string") return "";
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^\w\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
 
-  // Load prepend prompts
-  const { data: prependPrompts } = useQuery({
-    queryKey: ['prependPrompts'],
-    queryFn: async () => {
-      const result = await base44.entities.PrependPrompts.list();
-      return result.filter(p => p.is_active);
-    },
-    initialData: [],
-  });
+function selectPrepend(normalizedMessage, prepends) {
+  if (!normalizedMessage || !prepends.length) return null;
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages, showSafetyResponse]);
-
-  useEffect(() => {
-    if (!isLoading && messages.length > 0 && messages[messages.length - 1]?.role === 'assistant') {
-      inputRef.current?.focus();
+  for (const p of prepends) {
+    if (!p.is_active || !Array.isArray(p.keywords)) continue;
+    for (const kw of p.keywords) {
+      const k = normalizeText(kw);
+      if (normalizedMessage.includes(k)) {
+        return p;
+      }
     }
-  }, [isLoading, messages]);
+  }
+  return null;
+}
 
+export default function Chat() {
+  const navigate = useNavigate();
+  const inputRef = useRef(null);
+  const messagesEndRef = useRef(null);
+  const systemSentRef = useRef(false);
+
+  const mode =
+    new URLSearchParams(window.location.search).get("mode") ||
+    "adult_stresat";
+
+  const activeConversationId = localStorage.getItem("activeConversationId");
+  const STORAGE_KEY = activeConversationId
+    ? `chat_draft_${activeConversationId}`
+    : null;
+
+  const [messages, setMessages] = useState([]);
+  const [conversationSummary, setConversationSummary] = useState("");
+  const [chatMode, setChatMode] = useState("new");
+
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // ======================
+  // ★ MODIFICAT: COUNTER REAL (RPC)
+  // ======================
+  const [freeLeft, setFreeLeft] = useState(FREE_MESSAGES);
+  const [creditsLeft, setCreditsLeft] = useState(0);
+
+  const [showPaywall, setShowPaywall] = useState(false);
+  const [prepends, setPrepends] = useState([]);
+
+  /* ======================
+     LOAD META + DRAFT
+     ====================== */
   useEffect(() => {
-    checkAuthAndInit();
-  }, []);
-
-  const checkAuthAndInit = async () => {
-    try {
-      const isAuth = await base44.auth.isAuthenticated();
-      if (!isAuth) {
-        base44.auth.redirectToLogin(window.location.href);
+    async function load() {
+      if (!activeConversationId) {
+        navigate("/conversation-selector");
         return;
       }
-      
-      // Încarcă datele utilizatorului
-      const user = await base44.auth.me();
-      setCurrentUser(user);
-      setIsAdmin(user.role === 'admin');
-      
-      // Setează mesajele
-      const freeUsed = user.freeMessagesUsed || 0;
-      const paidRemaining = user.paidMessagesRemaining || 0;
-      setFreeMessagesUsed(freeUsed);
-      setPaidMessagesRemaining(paidRemaining);
-      
-      // Dacă utilizatorul nou, inițializează
-      if (user.freeMessagesUsed === undefined) {
-        await base44.auth.updateMe({ 
-          freeMessagesUsed: 0,
-          paidMessagesRemaining: 0
-        });
-      }
-      
-      initConversation();
-    } catch (error) {
-      console.error('Auth check failed:', error);
-      base44.auth.redirectToLogin(window.location.href);
-    }
-  };
 
-  useEffect(() => {
-    if (!conversationId) return;
+      const { data: state } = await supabase
+        .from("conversation_state")
+        .select("chat_mode")
+        .eq("conversation_id", activeConversationId)
+        .single();
 
-    const unsubscribe = base44.agents.subscribeToConversation(conversationId, (data) => {
-      const filteredMessages = (data.messages || []).filter(msg => msg.role !== 'system');
-      setMessages(prevMessages => {
-        const uiOnlyMessages = prevMessages.filter(m => m.uiOnly);
-        return [...uiOnlyMessages, ...filteredMessages];
-      });
-    });
+      if (state?.chat_mode) setChatMode(state.chat_mode);
 
-    return () => {
-      unsubscribe();
-    };
-  }, [conversationId]);
+      const { data: convo } = await supabase
+        .from("conversations")
+        .select("summary")
+        .eq("id", activeConversationId)
+        .single();
 
-  const initConversation = async () => {
-    try {
-      // Show initial message immediately
-      setMessages([{
-        role: 'assistant',
-        content: INITIAL_MESSAGES[mode],
-        uiOnly: true
-      }]);
-      
-      const newConversation = await base44.agents.createConversation({
-        agent_name: 'companion',
-        metadata: {
-          name: `Conversație - ${MODE_LABELS[mode]}`,
-          mode: mode
+      if (convo?.summary) setConversationSummary(convo.summary);
+
+      if (STORAGE_KEY) {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              setMessages(parsed);
+              return;
+            }
+          } catch { }
         }
-      });
-      
-      // Set conversation first so it's available for sending messages
-      setConversation(newConversation);
-      setConversationId(newConversation.id);
-      
-      // Send system prompt
-      const systemPrompt = getSystemPrompt();
-      await base44.agents.addMessage(newConversation, {
-        role: 'system',
-        content: systemPrompt
-      });
-      
-      // Add initial AI greeting
-      await base44.agents.addMessage(newConversation, {
-        role: 'assistant',
-        content: INITIAL_MESSAGES[mode]
-      });
-    } catch (error) {
-      console.error('Error creating conversation:', error);
+      }
+
+      setMessages([{ role: "assistant", content: INITIAL_MESSAGES[mode] }]);
     }
-  };
 
-  const normalize = (str) =>
-    str
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^\w\s]/g, "")
-      .trim();
+    load();
+  }, [activeConversationId, mode, navigate, STORAGE_KEY]);
 
-  const checkSafetyKeywords = (text) => {
-    const normalizedText = normalize(text);
-    return SAFETY_KEYWORDS.some(keyword => normalizedText.includes(normalize(keyword)));
-  };
+  // ======================
+  // INIT COUNTER DIN DB
+  // ======================
+  useEffect(() => {
+    async function loadCounters() {
+      if (!activeConversationId) return;
 
-  // 🔒 CONVERSATION LOGIC LOCKED
-  // Nu modifica tone, empatie sau reguli fără QA complet.
-  // Această logică este stabilă și validată.
-  const detectPrependTrigger = (text) => {
-    if (!prependPrompts || prependPrompts.length === 0) return null;
+      const { data: profile, error } = await supabase
+        .from("profiles")
+        .select("credits, free_messages_used")
+        .single();
 
-    const normalizedText = normalize(text);
-    
-    // 1️⃣ Check ALL triggers with keywords
-    for (const trigger of prependPrompts) {
-      if (trigger.keywords.some(keyword => {
-        const normalizedKeyword = normalize(keyword);
-        // Skip empty keywords after normalization (like '...')
-        if (!normalizedKeyword) return false;
-        return normalizedText.includes(normalizedKeyword);
-      })) {
-        return trigger.prompt;
+      if (error) {
+        console.error("loadCounters error:", error);
+        return;
+      }
+
+      const freeUsed = profile?.free_messages_used ?? 0;
+      const credits = profile?.credits ?? 0;
+
+      setCreditsLeft(credits);
+      setFreeLeft(Math.max(20 - freeUsed, 0));
+    }
+
+    loadCounters();
+  }, [activeConversationId]);
+
+
+  /* ======================
+     LOAD PREPENDS
+     ====================== */
+  useEffect(() => {
+    async function loadPrepends() {
+      const { data, error } = await supabase
+        .from("prepends")
+        .select("id, trigger_name, keywords, prompt, is_active");
+
+      if (!error && Array.isArray(data)) {
+        setPrepends(data);
       }
     }
-    
-    return null;
-  };
 
-  const getSystemPrompt = () => {
-    if (!aiPrompts) {
-      // Fallback prompts if not configured
-      const fallbackPrompts = {
-        adult_stresat: 'Ești un companion AI empatic și cald specializat în suportul adulților stresați. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre presiunea de la job, responsabilități și burnout. NU oferi sfaturi medicale sau terapie. Fii calm, pragmatic și non-judgmental. Răspunde în română, maxim 3-4 fraze scurte.',
-        parinte: 'Ești un companion AI empatic și cald specializat în suportul părinților. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre provocările și bucuriile parentale. NU oferi sfaturi medicale sau terapie. Fii înțelegător și non-judgmental. Răspunde în română, maxim 3-4 fraze scurte.',
-        tanar: 'Ești un companion AI empatic și cald specializat în suportul tinerilor. Asculți, validezi emoțiile și ajuți utilizatorul să-și clarifice gândurile despre identitate, relații și viitor. NU oferi sfaturi medicale sau terapie. Fii accesibil și relatable. Răspunde în română, maxim 3-4 fraze scurte.'
-      };
-      return fallbackPrompts[mode];
+    loadPrepends();
+  }, []);
+
+  /* ======================
+     AUTOSCROLL
+     ====================== */
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!isLoading) inputRef.current?.focus();
+  }, [messages, isLoading]);
+
+  /* ======================
+     SAVE DRAFT LOCAL
+     ====================== */
+  useEffect(() => {
+    if (STORAGE_KEY && messages.length > 0) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
     }
+  }, [messages, STORAGE_KEY]);
 
-    // Use configured prompts
-    const generalPrompt = aiPrompts.general_prompt || '';
-    const specificPrompts = {
-      adult_stresat: aiPrompts.adult_stresat_prompt || '',
-      parinte: aiPrompts.parinte_prompt || '',
-      tanar: aiPrompts.tanar_prompt || ''
-    };
-    
-    const specificPrompt = specificPrompts[mode];
-    return `${generalPrompt}\n\n${specificPrompt}`;
-  };
-
+  /* ======================
+     SEND MESSAGE
+     ====================== */
   const handleSendMessage = async () => {
     if (!inputValue.trim() || isLoading) return;
-    
-    // Wait for conversation to be ready
-    if (!conversation || !conversationId) {
-      console.log('Waiting for conversation to initialize...');
+
+    setIsLoading(true);
+
+    // ======================
+    // ★ MODIFICAT: RPC CONSUME MESSAGE
+    // ======================
+    const { data: consumeResult, error: consumeError } =
+      await supabase.rpc("consume_message", {
+        p_conversation_id: activeConversationId,
+      });
+
+    if (consumeError) {
+      console.error("consume_message error:", consumeError);
+      setIsLoading(false);
       return;
     }
-    if (safetyLockCount > 0) {
-      setSafetyLockCount(prev => prev - 1);
+
+    const consume = consumeResult?.[0];
+
+    if (!consume?.allowed) {
+      setShowPaywall(true);
+      setIsLoading(false);
       return;
     }
+
+    // ★ MODIFICAT: update counter real
+    setFreeLeft(consume.free_left);
+    setCreditsLeft(consume.credits_left);
 
     const userMessage = inputValue.trim();
-    setInputValue('');
+    setInputValue("");
 
-    // Check for safety keywords
-    if (checkSafetyKeywords(userMessage)) {
-      setShowSafetyResponse(true);
-      setSafetyLockCount(2);
-      await base44.agents.addMessage(conversation, {
-        role: 'user',
-        content: userMessage
-      });
-      return;
-    }
+    setMessages(prev => [...prev, { role: "user", content: userMessage }]);
 
-    // === PSEUDOCOD EXACT ===
-    // if (user.role === 'admin') → allowMessage()
-    if (isAdmin) {
-      // Admin → trimite mesaj direct
-      setMessageCount(messageCount + 1);
-      setIsLoading(true);
+    const normalizedMessage = normalizeText(userMessage);
+    const matchedPrepend = selectPrepend(normalizedMessage, prepends);
 
-      const prependPrompt = detectPrependTrigger(userMessage);
-      const messageToSend = prependPrompt 
-        ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
-        : userMessage;
+    if (matchedPrepend) {
+      setMessages(prev => [
+        ...prev,
+        { role: "assistant", content: matchedPrepend.prompt },
+      ]);
 
-      await base44.agents.addMessage(conversation, {
-        role: 'user',
-        content: messageToSend
-      });
+      await saveMessages(activeConversationId, [
+        { role: "user", content: userMessage },
+        { role: "assistant", content: matchedPrepend.prompt },
+      ]);
 
       setIsLoading(false);
       return;
     }
 
-    // if (user.freeMessagesUsed < 10) → incrementează, soft paywall la 8
-    if (freeMessagesUsed < FREE_MESSAGES) {
-      const newFree = freeMessagesUsed + 1;
-      setFreeMessagesUsed(newFree);
-      await base44.auth.updateMe({ freeMessagesUsed: newFree });
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      const recent = messages.slice(-5);
 
-      if (newFree === SOFT_PAYWALL_TRIGGER) {
-        setShowPaywall(true);
+      const payloadMessages = [];
+
+      if (!systemSentRef.current) {
+        payloadMessages.push({
+          role: "system",
+          content: SYSTEM_PROMPTS[mode],
+        });
+        systemSentRef.current = true;
       }
 
-      // Permite mesaj
-      setMessageCount(messageCount + 1);
-      setIsLoading(true);
+      payloadMessages.push(
+        ...recent.map(m => ({ role: m.role, content: m.content })),
+        { role: "user", content: userMessage }
+      );
 
-      const prependPrompt = detectPrependTrigger(userMessage);
-      const messageToSend = prependPrompt 
-        ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
-        : userMessage;
-
-      await base44.agents.addMessage(conversation, {
-        role: 'user',
-        content: messageToSend
+      const { data } = await supabase.functions.invoke("chat-ai", {
+        headers: { Authorization: `Bearer ${session.session.access_token}` },
+        body: {
+          messages: payloadMessages,
+          summary: conversationSummary,
+        },
       });
 
+      const aiReply = data?.content || "(Răspuns gol)";
+      setMessages(prev => [...prev, { role: "assistant", content: aiReply }]);
+
+      await saveMessages(activeConversationId, [
+        { role: "user", content: userMessage },
+        { role: "assistant", content: aiReply },
+      ]);
+    } finally {
       setIsLoading(false);
-
-      // Hard paywall după ultimul mesaj gratuit
-      if (newFree === FREE_MESSAGES && paidMessagesRemaining === 0) {
-        setShowPaywall(true);
-      }
-
-      return;
-    }
-
-    // if (user.paidMessagesRemaining > 0) → decrementează
-    if (paidMessagesRemaining > 0) {
-      const newPaid = paidMessagesRemaining - 1;
-      setPaidMessagesRemaining(newPaid);
-      await base44.auth.updateMe({ paidMessagesRemaining: newPaid });
-
-      // Permite mesaj
-      setMessageCount(messageCount + 1);
-      setIsLoading(true);
-
-      const prependPrompt = detectPrependTrigger(userMessage);
-      const messageToSend = prependPrompt 
-        ? `${prependPrompt}\n\n---\nMesaj utilizator: ${userMessage}`
-        : userMessage;
-
-      await base44.agents.addMessage(conversation, {
-        role: 'user',
-        content: messageToSend
-      });
-
-      setIsLoading(false);
-
-      // Hard paywall după ultimul mesaj plătit
-      if (newPaid === 0) {
-        setShowPaywall(true);
-      }
-
-      return;
-    }
-
-    // Hard paywall → blochează mesaj
-    setShowPaywall(true);
-        };
-
-  const handlePurchaseComplete = (addedMessages) => {
-    const newPaid = paidMessagesRemaining + addedMessages;
-    setPaidMessagesRemaining(newPaid);
-    setShowPaywall(false);
-  };
-
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
     }
   };
 
+  /* ======================
+     FINALIZE CONVERSATION
+     ====================== */
+  const finalizeConversation = async () => {
+    try {
+      if (messages.length > 1) {
+        await generateAndSaveSummary(activeConversationId, messages);
+      }
+    } catch (err) {
+      console.error("Eroare la generare summary:", err);
+    }
+  };
 
+  const handleBack = async () => {
+    setIsLoading(true);
+    await finalizeConversation();
+    setIsLoading(false);
+    navigate("/conversation-selector");
+  };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
+  /* ======================
+     RENDER
+     ====================== */
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-rose-50 flex flex-col">
-      {/* Header */}
-      <motion.header
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="sticky top-0 z-40 bg-white/80 backdrop-blur-lg border-b border-gray-100 px-4 py-3"
-      >
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-purple-50 to-rose-50">
+      <header className="sticky top-0 bg-white/80 backdrop-blur border-b px-4 py-3">
+        <div className="max-w-2xl mx-auto flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Link to={createPageUrl('ChooseMode')}>
-              <Button variant="ghost" size="icon" className="rounded-full">
-                <ArrowLeft className="w-5 h-5 text-gray-600" />
-              </Button>
-            </Link>
+            <Button variant="ghost" size="icon" onClick={handleBack}>
+              <ArrowLeft />
+            </Button>
             <div>
-              <h1 className="font-medium text-gray-800">Companion AI</h1>
-              <p className="text-xs text-gray-500">{MODE_LABELS[mode]}</p>
+              <div className="font-medium">Companion AI</div>
+              <div className="text-xs text-gray-500">{MODE_LABELS[mode]}</div>
             </div>
           </div>
-          
-          {/* Message counter */}
-          <div className="flex items-center gap-3">
-            {!isAdmin && (
-              <div className="flex items-center gap-2">
-                <div className="text-sm font-medium text-gray-600">
-                  <span className={(FREE_MESSAGES - freeMessagesUsed + paidMessagesRemaining) <= 2 ? 'text-amber-500' : 'text-indigo-500'}>
-                    {FREE_MESSAGES - freeMessagesUsed + paidMessagesRemaining}
-                  </span>
-                  <span className="text-gray-400 text-xs ml-1">mesaje</span>
-                </div>
-              </div>
-            )}
-            {isAdmin && (
-              <div className="text-xs text-indigo-600 font-medium">
-                Admin • Nelimitat
-              </div>
-            )}
-            <button 
-              onClick={() => base44.auth.logout(createPageUrl('Home'))}
-              className="flex flex-col items-center gap-1 hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors"
-            >
-              <LogOut className="w-5 h-5 text-gray-600" />
-              <span className="text-xs text-gray-500">Ieșire</span>
-            </button>
-          </div>
-        </div>
-      </motion.header>
 
-      {/* Messages area */}
-      <div className="flex-1 overflow-y-auto px-4 py-6">
-        <div className="max-w-2xl mx-auto space-y-4">
-            {messages.filter(msg => msg.role !== 'system').map((msg, index) => {
-              // Extract original user message if prepend was used
-              let displayContent = msg.content;
-              if (msg.role === 'user' && msg.content.includes('---\nMesaj utilizator:')) {
-                displayContent = msg.content.split('---\nMesaj utilizator:')[1].trim();
-              }
-
-              return (
-                <ChatBubble
-                  key={index}
-                  message={displayContent}
-                  isUser={msg.role === 'user'}
-                />
-              );
-            })}
-          
-          {isLoading && <ChatBubble isTyping />}
-          
-          {showSafetyResponse && (
-            <SafetyResponse 
-              onContinue={() => {
-                setShowSafetyResponse(false);
-              }} 
-            />
-          )}
-          
-          <div ref={messagesEndRef} />
-        </div>
-      </div>
-
-      {/* Input area */}
-      <motion.div
-        initial={{ y: 20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className="sticky bottom-0 bg-white/80 backdrop-blur-lg border-t border-gray-100 px-4 py-4"
-      >
-        <div className="max-w-2xl mx-auto">
-          <div className="flex items-center gap-3">
-            <div className="flex-1 relative">
-              <Input
-                ref={inputRef}
-                value={inputValue}
-                onChange={(e) => setInputValue(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder={safetyLockCount > 0 ? "Ia-ți un moment..." : "Scrie un mesaj..."}
-                disabled={isLoading || (!isAdmin && (FREE_MESSAGES - freeMessagesUsed + paidMessagesRemaining) <= 0) || safetyLockCount > 0}
-                className="w-full py-6 pl-4 pr-12 rounded-2xl border-gray-200 bg-white focus:ring-2 focus:ring-indigo-200 focus:border-indigo-300"
-              />
-            </div>
-            <Button
-              onClick={handleSendMessage}
-              disabled={!inputValue.trim() || isLoading || (!isAdmin && (FREE_MESSAGES - freeMessagesUsed + paidMessagesRemaining) <= 0) || safetyLockCount > 0}
-              className="w-12 h-12 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 shadow-lg shadow-purple-200/50 disabled:opacity-50"
-            >
-              <Send className="w-5 h-5" />
+          <div className="flex items-center gap-3 text-sm">
+            {/* ★ MODIFICAT: afișare counter real */}
+            <span className="text-gray-600">
+              {freeLeft + creditsLeft} mesaje
+            </span>
+            <Button variant="ghost" size="icon" onClick={handleLogout}>
+              <LogOut className="w-4 h-4" />
             </Button>
           </div>
-
-          {!isAdmin && (() => {
-            const remaining = FREE_MESSAGES - freeMessagesUsed + paidMessagesRemaining;
-            return remaining <= 3 && remaining > 0 && (
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center text-xs text-amber-600 mt-2"
-              >
-                {remaining} {remaining === 1 ? 'mesaj rămas' : 'mesaje rămase'}
-              </motion.p>
-            );
-          })()}
         </div>
-      </motion.div>
+      </header>
 
-      {/* Paywall Modal */}
+      <main className="flex-1 overflow-y-auto px-4 py-6">
+        <div className="max-w-2xl mx-auto space-y-4">
+          {chatMode === "history" && conversationSummary && (
+            <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-xl text-sm">
+              <strong>Rezumat conversație:</strong>
+              <p className="mt-1">{conversationSummary}</p>
+            </div>
+          )}
+
+          {messages.map((m, i) => (
+            <ChatBubble
+              key={i}
+              message={m.content}
+              isUser={m.role === "user"}
+            />
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+      </main>
+
+      <footer className="border-t bg-white px-4 py-4">
+        <div className="max-w-2xl mx-auto flex gap-3">
+          <Input
+            ref={inputRef}
+            value={inputValue}
+            onChange={e => setInputValue(e.target.value)}
+            onKeyDown={e => e.key === "Enter" && handleSendMessage()}
+            placeholder="Scrie un mesaj..."
+            disabled={isLoading}
+          />
+          <Button
+            onClick={handleSendMessage}
+            disabled={isLoading}
+            className="w-12 h-12 rounded-2xl bg-gradient-to-r from-indigo-500 to-purple-500"
+          >
+            <Send className="w-5 h-5" />
+          </Button>
+        </div>
+      </footer>
+
       <PaywallModal
         isOpen={showPaywall}
         onClose={() => setShowPaywall(false)}
-        onPurchaseComplete={handlePurchaseComplete}
-        messagesUsed={freeMessagesUsed}
-        paidRemaining={paidMessagesRemaining}
+        messagesUsed={FREE_MESSAGES - freeLeft}
+        paidRemaining={creditsLeft}
       />
     </div>
   );
