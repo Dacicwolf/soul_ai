@@ -2,11 +2,26 @@ import Stripe from "stripe";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 
+/**
+ * Stripe webhook MUST receive raw body
+ */
 export const config = {
     api: {
         bodyParser: false,
     },
 };
+
+/**
+ * Helper: read raw request body as Buffer
+ */
+function getRawBody(req: VercelRequest): Promise<Buffer> {
+    return new Promise((resolve, reject) => {
+        const chunks: Uint8Array[] = [];
+        req.on("data", (chunk) => chunks.push(chunk));
+        req.on("end", () => resolve(Buffer.concat(chunks)));
+        req.on("error", reject);
+    });
+}
 
 const PACK_CREDITS: Record<string, number> = {
     iron: 50,
@@ -30,7 +45,9 @@ export default async function handler(
         return res.status(405).end();
     }
 
-    // 🔴 VALIDARE ENV VARS (CRITIC)
+    /* =====================
+       ENV VALIDATION
+    ===================== */
     const {
         STRIPE_SECRET_KEY,
         STRIPE_WEBHOOK_SECRET,
@@ -65,49 +82,64 @@ export default async function handler(
             apiVersion: "2023-10-16",
         });
 
-        const rawBody = req.body as Buffer;
+        const rawBody = await getRawBody(req);
 
         event = stripe.webhooks.constructEvent(
             rawBody,
             sig,
             STRIPE_WEBHOOK_SECRET
         );
+    } catch (err: any) {
+        console.error("Webhook signature verification failed:", err.message);
+        return res.status(400).send("Webhook Error");
+    }
 
-        if (event.type === "checkout.session.completed") {
-            const session = event.data.object as Stripe.Checkout.Session;
+    /* =====================
+       EVENT HANDLING
+    ===================== */
+    if (event.type === "checkout.session.completed") {
+        const session = event.data.object as Stripe.Checkout.Session;
 
-            const userId = session.metadata?.user_id;
-            const pack = session.metadata?.pack;
+        const userId = session.metadata?.user_id;
+        const pack = session.metadata?.pack;
 
-            if (!userId || !pack || !PACK_CREDITS[pack]) {
-                return res.status(200).json({ received: true });
-            }
-
-            const supabase = createClient(
-                SUPABASE_URL,
-                SUPABASE_SERVICE_ROLE_KEY
-            );
-
-            const creditsToAdd = PACK_CREDITS[pack];
-
-            await supabase
-                .from("profiles")
-                .update({
-                    credits: supabase.rpc("increment", { x: creditsToAdd }),
-                    plan: "paid",
-                })
-                .eq("id", userId);
-
-            await supabase.from("payments").insert({
-                user_id: userId,
-                stripe_session_id: session.id,
-                status: "completed",
-            });
+        if (!userId || !pack || !PACK_CREDITS[pack]) {
+            console.warn("Invalid metadata:", session.metadata);
+            return res.status(200).json({ received: true });
         }
 
-        return res.status(200).json({ received: true });
-    } catch (err: any) {
-        console.error("Webhook error:", err);
-        return res.status(400).send(`Webhook Error`);
+        const supabase = createClient(
+            SUPABASE_URL,
+            SUPABASE_SERVICE_ROLE_KEY
+        );
+
+        const creditsToAdd = PACK_CREDITS[pack];
+
+        // 1️⃣ Update user credits
+        const { error: updateError } = await supabase
+            .from("profiles")
+            .update({
+                credits: supabase.rpc("increment", { x: creditsToAdd }),
+                plan: "paid",
+            })
+            .eq("id", userId);
+
+        if (updateError) {
+            console.error("Supabase update error:", updateError);
+            return res.status(500).json({ error: "Failed to update credits" });
+        }
+
+        // 2️⃣ Save payment audit
+        const { error: insertError } = await supabase.from("payments").insert({
+            user_id: userId,
+            stripe_session_id: session.id,
+            status: "completed",
+        });
+
+        if (insertError) {
+            console.error("Payment insert error:", insertError);
+        }
     }
+
+    return res.status(200).json({ received: true });
 }
