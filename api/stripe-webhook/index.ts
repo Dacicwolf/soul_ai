@@ -1,15 +1,10 @@
 import Stripe from "stripe";
-import { buffer } from "micro";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 
-/**
- * IMPORTANT:
- * Stripe webhook trebuie să primească RAW body
- */
 export const config = {
     api: {
-        bodyParser: false,
+        bodyParser: false, // IMPORTANT pentru Stripe
     },
 };
 
@@ -34,15 +29,12 @@ export default async function handler(
     res: VercelResponse
 ) {
     /* =====================
-       HEALTH CHECK (GET)
+       HEALTH CHECK
     ===================== */
     if (req.method === "GET" || req.method === "HEAD") {
         return res.status(200).json({ ok: true });
     }
 
-    /* =====================
-       DOAR POST
-    ===================== */
     if (req.method !== "POST") {
         return res.status(405).end();
     }
@@ -55,10 +47,11 @@ export default async function handler(
     let event: Stripe.Event;
 
     try {
-        const buf = await buffer(req);
+        // ⬇️ AICI ESTE DIFERENȚA CRITICĂ
+        const rawBody = req.body as Buffer;
 
         event = stripe.webhooks.constructEvent(
-            buf,
+            rawBody,
             sig,
             process.env.STRIPE_WEBHOOK_SECRET as string
         );
@@ -83,7 +76,7 @@ export default async function handler(
 
         const creditsToAdd = PACK_CREDITS[pack];
 
-        // 1️⃣ Update user credits
+        // 1️⃣ Update credits
         const { error: updateError } = await supabase
             .from("profiles")
             .update({
@@ -96,7 +89,7 @@ export default async function handler(
             console.error("Supabase update error:", updateError);
         }
 
-        // 2️⃣ Save payment audit
+        // 2️⃣ Save payment
         const { error: insertError } = await supabase.from("payments").insert({
             user_id: userId,
             stripe_session_id: session.id,
