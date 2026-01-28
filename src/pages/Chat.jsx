@@ -80,6 +80,8 @@ export default function Chat() {
   const [inputValue, setInputValue] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
+  const [userId, setUserId] = useState(null);
+
   // ======================
   // ★ MODIFICAT: COUNTER REAL (RPC)
   // ======================
@@ -195,6 +197,16 @@ export default function Chat() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
     }
   }, [messages, STORAGE_KEY]);
+
+  useEffect(() => {
+    async function loadUser() {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.id) {
+        setUserId(data.user.id);
+      }
+    }
+    loadUser();
+  }, []);
 
   /* ======================
      SEND MESSAGE
@@ -318,8 +330,8 @@ export default function Chat() {
   };
 
   /* ======================
-     RENDER
-     ====================== */
+    RENDER
+    ====================== */
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-br from-indigo-50 via-purple-50 to-rose-50">
       <header className="sticky top-0 bg-white/80 backdrop-blur border-b px-4 py-3">
@@ -391,6 +403,7 @@ export default function Chat() {
         onClose={() => setShowPaywall(false)}
         messagesUsed={FREE_MESSAGES - freeLeft}
         paidRemaining={creditsLeft}
+        userId={userId}
       />
     </div>
   );

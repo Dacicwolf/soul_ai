@@ -10,6 +10,7 @@ import UserNotRegisteredError from "@/components/UserNotRegisteredError";
 
 import PromptManagement from "@/pages/PromptManagement";
 import PrependManagement from "@/pages/PrependManagement";
+import PaymentSuccess from "@/pages/PaymentSuccess";
 
 const { Pages, Layout, mainPage } = pagesConfig;
 const mainPageKey = mainPage ?? Object.keys(Pages)[0];
@@ -88,6 +89,14 @@ const AuthenticatedApp = () => {
         }
       />
 
+      <Route
+        path="payment-success"
+        element={
+          <LayoutWrapper currentPageName="payment-success">
+            <PaymentSuccess />
+          </LayoutWrapper>
+        }
+      />
       <Route path="*" element={<PageNotFound />} />
     </Routes>
   );

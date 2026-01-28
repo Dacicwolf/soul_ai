@@ -1,32 +1,35 @@
-export const config = {
-  auth: false,
-};
-
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Star, Crown, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/lib/supabaseClient';
+
+/**
+ * IMPORTANT
+ * Backend Stripe este pe Vercel, nu Supabase Edge.
+ * În DEV: http://localhost:5173 -> fetch către Vercel domain
+ * În PROD: frontend și backend pot fi pe același domeniu
+ */
+const STRIPE_API_URL = 'https://soulai-psi.vercel.app/api/create-checkout-session';
 
 export default function PaywallModal({
   isOpen,
   onClose,
   messagesUsed,
   paidRemaining,
+  userId, // 🔴 CRITIC: ID-ul userului (profiles.id)
 }) {
   const [selectedPackage, setSelectedPackage] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
 
   // ======================
-  // PACHETE
+  // PACHETE (ALINIATE CU BACKEND)
   // ======================
   const packages = [
     {
-      id: 'iron_50',
+      id: 'iron',
       name: 'Iron',
       messages: 50,
       price: 5,
-      priceId: 'price_1SuHM0JMxVYjXiGFk6Rq0jJg',
       icon: Shield,
       iconColor: 'text-gray-600',
       bgGradient: 'from-gray-50 to-gray-400',
@@ -34,11 +37,10 @@ export default function PaywallModal({
       subtitle: 'Pentru a continua fără presiune',
     },
     {
-      id: 'bronze_100',
+      id: 'bronze',
       name: 'Bronz',
       messages: 100,
       price: 9.9,
-      priceId: 'price_1SuHUSJMxVYjXiGFDrH5kgRP',
       icon: Sparkles,
       iconColor: 'text-amber-900',
       bgGradient: 'from-stone-50 to-amber-500',
@@ -46,11 +48,10 @@ export default function PaywallModal({
       subtitle: 'Echilibrul potrivit pentru utilizare ocazională',
     },
     {
-      id: 'silver_250',
+      id: 'silver',
       name: 'Silver',
       messages: 250,
       price: 19.9,
-      priceId: 'price_1SuHXBJMxVYjXiGFT7iqxmUE',
       icon: Star,
       iconColor: 'text-indigo-900',
       bgGradient: 'from-indigo-50 to-indigo-400',
@@ -60,11 +61,10 @@ export default function PaywallModal({
       highlight: true,
     },
     {
-      id: 'gold_500',
+      id: 'gold',
       name: 'Gold',
       messages: 500,
       price: 37.9,
-      priceId: 'price_1SuHZIJMxVYjXiGFPDTyefNW',
       icon: Crown,
       iconColor: 'text-yellow-700',
       bgGradient: 'from-yellow-50 to-amber-400',
@@ -74,12 +74,18 @@ export default function PaywallModal({
   ];
 
   // ======================
-  // HANDLER CHECKOUT
+  // CHECKOUT STRIPE (Vercel)
   // ======================
   const handleCheckout = async () => {
-    if (!selectedPackage?.priceId) return;
+    if (!selectedPackage) return;
 
-    // Protecție iframe (opțional, dar bun)
+    if (!userId) {
+      console.error('Missing userId for Stripe checkout');
+      alert('Eroare internă: utilizator neidentificat.');
+      return;
+    }
+
+    // Protecție iframe (Stripe nu iubește iframe-uri)
     if (window.self !== window.top) {
       alert('Pentru a cumpăra, deschide aplicația într-o fereastră nouă.');
       return;
@@ -88,27 +94,27 @@ export default function PaywallModal({
     setIsProcessing(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke(
-        'create-checkout-session',
-        {
-          body: {
-            priceId: selectedPackage.priceId,
-          },
-        }
-      );
+      const res = await fetch(STRIPE_API_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          pack: selectedPackage.id, // iron | bronze | silver | gold
+          userId: userId,           // 🔴 TRIMIS CĂTRE BACKEND
+        }),
+      });
 
-      if (error) {
-        console.error('Checkout invoke error:', error);
+      const data = await res.json();
+
+      if (!res.ok || !data?.url) {
+        console.error('Checkout error:', data);
         setIsProcessing(false);
         return;
       }
 
-      if (data?.url) {
-        window.location.href = data.url;
-      } else {
-        console.error('No checkout URL returned');
-        setIsProcessing(false);
-      }
+      // Redirect către Stripe Checkout
+      window.location.href = data.url;
     } catch (err) {
       console.error('Checkout failed:', err);
       setIsProcessing(false);
