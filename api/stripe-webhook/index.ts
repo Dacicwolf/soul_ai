@@ -3,6 +3,10 @@ import { buffer } from "micro";
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 
+/**
+ * IMPORTANT:
+ * Stripe webhook trebuie să primească RAW body
+ */
 export const config = {
     api: {
         bodyParser: false,
@@ -29,26 +33,43 @@ export default async function handler(
     req: VercelRequest,
     res: VercelResponse
 ) {
+    /* =====================
+       HEALTH CHECK (GET)
+    ===================== */
+    if (req.method === "GET" || req.method === "HEAD") {
+        return res.status(200).json({ ok: true });
+    }
+
+    /* =====================
+       DOAR POST
+    ===================== */
     if (req.method !== "POST") {
         return res.status(405).end();
     }
 
-    const sig = req.headers["stripe-signature"] as string;
-    const buf = await buffer(req);
+    const sig = req.headers["stripe-signature"];
+    if (!sig) {
+        return res.status(400).send("Missing Stripe signature");
+    }
 
     let event: Stripe.Event;
 
     try {
+        const buf = await buffer(req);
+
         event = stripe.webhooks.constructEvent(
             buf,
             sig,
             process.env.STRIPE_WEBHOOK_SECRET as string
         );
     } catch (err: any) {
-        console.error("Webhook signature verification failed.", err.message);
+        console.error("Webhook signature verification failed:", err.message);
         return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
+    /* =====================
+       EVENT HANDLING
+    ===================== */
     if (event.type === "checkout.session.completed") {
         const session = event.data.object as Stripe.Checkout.Session;
 
@@ -56,28 +77,35 @@ export default async function handler(
         const pack = session.metadata?.pack;
 
         if (!userId || !pack || !PACK_CREDITS[pack]) {
+            console.warn("Invalid metadata:", session.metadata);
             return res.status(200).json({ received: true });
         }
 
         const creditsToAdd = PACK_CREDITS[pack];
 
-        // 1️⃣ Update credits + plan
-        await supabase
+        // 1️⃣ Update user credits
+        const { error: updateError } = await supabase
             .from("profiles")
             .update({
-                credits: supabase.rpc("increment", {
-                    x: creditsToAdd,
-                }),
+                credits: supabase.rpc("increment", { x: creditsToAdd }),
                 plan: "paid",
             })
             .eq("id", userId);
 
-        // 2️⃣ Save payment (audit)
-        await supabase.from("payments").insert({
+        if (updateError) {
+            console.error("Supabase update error:", updateError);
+        }
+
+        // 2️⃣ Save payment audit
+        const { error: insertError } = await supabase.from("payments").insert({
             user_id: userId,
             stripe_session_id: session.id,
             status: "completed",
         });
+
+        if (insertError) {
+            console.error("Payment insert error:", insertError);
+        }
     }
 
     return res.status(200).json({ received: true });
