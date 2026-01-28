@@ -1,3 +1,7 @@
+export const config = {
+  auth: false,
+};
+
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Star, Crown, Shield } from 'lucide-react';
