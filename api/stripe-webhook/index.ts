@@ -115,17 +115,31 @@ export default async function handler(
 
         const creditsToAdd = PACK_CREDITS[pack];
 
-        // 1️⃣ Update user credits
+        // 1️⃣ Citește credits curente
+        const { data: profile, error: fetchError } = await supabase
+            .from("profiles")
+            .select("credits")
+            .eq("id", userId)
+            .single();
+
+        if (fetchError) {
+            console.error("Failed to fetch profile:", fetchError);
+            return res.status(500).json({ error: "Failed to fetch profile" });
+        }
+
+        const newCredits = (profile?.credits ?? 0) + creditsToAdd;
+
+        // 2️⃣ Update credits
         const { error: updateError } = await supabase
             .from("profiles")
             .update({
-                credits: supabase.rpc("increment", { x: creditsToAdd }),
+                credits: newCredits,
                 plan: "paid",
             })
             .eq("id", userId);
 
         if (updateError) {
-            console.error("Supabase update error:", updateError);
+            console.error("Failed to update credits:", updateError);
             return res.status(500).json({ error: "Failed to update credits" });
         }
 
